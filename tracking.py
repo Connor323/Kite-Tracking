@@ -17,7 +17,7 @@ tracker_types = ['BOOSTING', 'MIL','KCF', 'TLD', 'MEDIANFLOW', 'GOTURN']
 tracker_type = tracker_types[1]
 
 # image and template path
-IMAGE_PATH = "../images/clear0/*.bmp"
+IMAGE_PATH = "../data/clear/*.bmp"
 # IMAGE_PATH = "../images/cloudy0/*.bmp"
 TEMPLATE_PATH = "templates/kite0/*.png"
 # TEMPLATE_PATH = "templates/kite1/*.png"
@@ -43,7 +43,9 @@ def cropImageAndHistogram(image, bbox):
     crop_y_max = int(min(h - 1, bbox[1] + bbox[3] + PATCH_MARGIN))
 
     patch = image[crop_y_min:crop_y_max+1, crop_x_min:crop_x_max+1]
-    hist = [cv2.calcHist([patch], [i], None, [256], [0,256]) for i in range(3)]
+    tmp = patch.copy()
+    # cv2.normalize(patch, tmp, 0, 255, cv2.NORM_MINMAX) # not good
+    hist = [cv2.calcHist([tmp], [i], None, [256], [0,256]) for i in range(3)]
     hist = np.squeeze(hist)
 
     return hist
@@ -128,6 +130,7 @@ if __name__ == '__main__' :
         currHist = cropImageAndHistogram(frame, bbox)
         dist = computeHistDist(currHist, prevHist)
         prevHist = currHist
+        print dist
         if dist > THRESHOLD_VALUE:
             ok = False
  
