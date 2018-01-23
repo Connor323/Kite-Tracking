@@ -41,3 +41,6 @@ class Video:
 
     def getFrameIdx(self):
         return self.counter
+
+    def release(self):
+        pass
