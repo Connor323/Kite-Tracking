@@ -17,19 +17,25 @@ tracker_types = ['BOOSTING', 'MIL','KCF', 'TLD', 'MEDIANFLOW', 'GOTURN']
 tracker_type = tracker_types[1]
 
 # image and template path
-IMAGE_PATH = "../data/clear/*.bmp"
+IMAGE_PATH = "../images/clear0/*.bmp"
 # IMAGE_PATH = "../images/cloudy0/*.bmp"
 TEMPLATE_PATH = "templates/kite0/*.png"
 # TEMPLATE_PATH = "templates/kite1/*.png"
+# File format
+# NOTE: Format 0: 2018-1-18-12-49-0-204-original.bmp
+#       Format 1: 2017-12-15-10-32-8-595.bmp (without "original")
+FILE_FORMAT = 0
 
 # The margin when crop the image for histogram computation
 PATCH_MARGIN = 10
-THRESHOLD_VALUE = 1000
+THRESHOLD_VALUE = 2000 # TODO: dynamic select this value if possible
 
 # Define an initial bounding box
 ROI = [489, 1230, 1407, 609] # The search area when we fail on tracking.
-bbox = (610, 1315, 51, 37) 
-# bbox = (1194, 1686, 21, 34) 
+init_bbox = None # None, if no initial bbox
+DEFAULT_BBOX = [0, 0, 50, 50] # If init_bbox is none, we use the size of defalt bbox for following tracking
+# bbox = (610,  1315, 51, 37) # clear0
+# bbox = (1194, 1686, 21, 34) # cloudy0
 ####################################################################
 
 ####################### helper functions ###########################
@@ -80,6 +86,8 @@ def creat_tracker(tracker_type):
 
 if __name__ == '__main__' :
  
+    frames = []
+
     # Set up tracker.
     sift = SIFT(ROI, TEMPLATE_PATH)
     tracker = creat_tracker(tracker_type)
@@ -91,7 +99,7 @@ if __name__ == '__main__' :
     _, path_and_file = os.path.splitdrive(files[0])
     path, file = os.path.split(path_and_file)
 
-    video = Video(files)
+    video = Video(files, FILE_FORMAT)
     frame_num = video.getFrameNumber()
 
     # Exit if video not opened.
@@ -105,14 +113,23 @@ if __name__ == '__main__' :
         print 'Cannot read video file'
         sys.exit()
  
+    # Use SIFT find init_bbox if init_bbox is none
+    if init_bbox is None:
+        pt = sift.compute(frame)
+        # Stop if both methods failed
+        if pt is None:
+            raise ValueError("Initial Tracking Failed!!!")
+        init_bbox = sift.getBoxFromPt(pt, DEFAULT_BBOX)
+
     # Initialize tracker with first frame and bounding box
-    print "image {} / {}, bbox: {}".format(video.getFrameIdx(), frame_num, bbox) 
-    ok = tracker.init(frame, bbox)
+    print "image {} / {}, bbox: {}".format(video.getFrameIdx(), frame_num, init_bbox) 
+    ok = tracker.init(frame, init_bbox)
+
+    # Draw initial bbox
+    frame = drawBox(frame, init_bbox)
 
     # Crop patch and analysis using histogram
-    prevHist = cropImageAndHistogram(frame, bbox)
-
-    frames = []
+    prevHist = cropImageAndHistogram(frame, init_bbox)
     while True:
         # Read a new frame
         ok, frame = video.read()
@@ -124,18 +141,19 @@ if __name__ == '__main__' :
  
         # Update tracker
         ok, bbox = tracker.update(frame)
-        print "image {} / {}, bbox: {}".format(video.getFrameIdx(), frame_num, bbox) 
 
         # Crop patch and analysis using histogram
         currHist = cropImageAndHistogram(frame, bbox)
         dist = computeHistDist(currHist, prevHist)
         prevHist = currHist
-        print dist
         if dist > THRESHOLD_VALUE:
             ok = False
- 
-        # Calculate Frames per second (FPS)
-        fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer);
+
+        # Print out current info.
+        print "image {} / {}, bbox: {}, histogram distance: {}".format(video.getFrameIdx(), 
+                                                                       frame_num, 
+                                                                       bbox,
+                                                                       dist) 
  
         # Draw bounding box
         if ok:
@@ -144,27 +162,35 @@ if __name__ == '__main__' :
         else :
             # Tracking failure
             print "   KCF Failed! Use SIFT!"
-            cv2.putText(frame, "KCF Failed! Use SIFT", (100,80), cv2.FONT_HERSHEY_SIMPLEX, 0.75,(0,0,255),2)
+            cv2.putText(frame, "KCF Failed! Use SIFT", (100,300), cv2.FONT_HERSHEY_SIMPLEX, 2.0,(0,0,255),5)
             pt = sift.compute(frame)
             
             # Stop if both methods failed
             if pt is None:
                 print "   Tracking Failed!!!"
                 break
-            bbox = sift.getBoxFromPt(pt, bbox)
+
+            # Update bbox per SIFI point
+            if bbox[2] * bbox[3]:
+                bbox = sift.getBoxFromPt(pt, bbox)
+            else:
+                bbox = sift.getBoxFromPt(pt, DEFAULT_BBOX)
             frame = drawBox(frame, bbox)
 
             # Reinitialize tracker
-            del tracker
+            del tracker # release the object space
             tracker = creat_tracker(tracker_type)
             tracker.init(frame, bbox) # TODO: This step might have problem after running for a few times
             currHist = cropImageAndHistogram(frame, bbox)
  
+        # Calculate Frames per second (FPS)
+        fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer);
+
         # Display tracker type on frame
-        cv2.putText(frame, tracker_type + " Tracker", (100,20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50,170,50),2);
+        cv2.putText(frame, tracker_type + " Tracker", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (50,170,50),5);
      
         # Display FPS on frame
-        cv2.putText(frame, "FPS : " + str(int(fps)), (100,50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50,170,50), 2);
+        cv2.putText(frame, "FPS : " + str(int(fps)), (100,200), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (50,170,50), 5);
  
         # Display result
         frame_resize = cv2.resize(frame, (500, 500))
@@ -175,7 +201,6 @@ if __name__ == '__main__' :
         frames.append(frame_resize)
  
         # Exit if ESC pressed
-        # cv2.waitKey()
         k = cv2.waitKey(1) & 0xff
         if k == 27 : break
 

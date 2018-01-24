@@ -27,14 +27,17 @@ class SIFT:
 
             matches = flann.knnMatch(des1,des2,k=2)
 
-            # store all the good matches as per Lowe's ratio test.
-            good = []
-            for m,n in matches:
-                if m.distance < 0.7*n.distance:
-                    good.append(m)
+            # store the best matches as per Lowe's ratio test.
+            good = None
+            ratio = 0.7
+            for m,n in matches:   
+                tmp_ratio = m.distance/float(n.distance)
+                if m.distance < 0.7*n.distance and tmp_ratio < ratio:
+                    ratio = tmp_ratio
+                    good = m
 
-            if len(good) != 0:
-                pt = np.array(kp2[good[0].trainIdx].pt)
+            if good is not None:
+                pt = np.array(kp2[good.trainIdx].pt)
                 pt[0] += self.ROI[0]
                 pt[1] += self.ROI[1]
                 return pt
