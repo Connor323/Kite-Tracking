@@ -54,7 +54,7 @@ call(["mkdir", "-p", NEG_SAMPLE_PATH])
 SAMPLE_SIZE = (51, 51)
 POS_CRITERIR = 0.6
 POS_SAMPLE_PER_FRAME = 6
-NEG_SAMPLE_PER_FRAME = 2
+NEG_SAMPLE_PER_FRAME = 4
 EDGE_SAMPLE_PER_FRAME = 4
 EDGE_RANGE = 400
 ####################################################################

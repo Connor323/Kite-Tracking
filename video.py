@@ -6,11 +6,20 @@ import numpy as np
 
 class Video:
     """docstring for Video"""
-    def __init__(self, files, file_format=0):
+    def __init__(self, files, file_format=0, start_frame=None):
         assert files is not None
         self.counter = 0
         self.file_format = file_format
         self.files = self.sort(files)
+        self.start_idx = None
+        try:
+            self.start_idx = np.squeeze(np.where(self.files == start_frame))
+            if type(self.start_idx) != type(0):
+                self.start_idx = 0
+        except ValueError:
+            self.start_idx = 0
+        print "Starting from frame: %d" % (self.start_idx)
+        self.files = self.files[self.start_idx:]   
         self.iter = iter(self.files)
     
     def sort(self, files):

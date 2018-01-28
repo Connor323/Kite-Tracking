@@ -25,7 +25,7 @@ if __name__ == '__main__' :
     _, path_and_file = os.path.splitdrive(files[0])
     path, file = os.path.split(path_and_file)
 
-    video = Video(files, FILE_FORMAT)
+    video = Video(files, FILE_FORMAT, START_FRAME)
     frame_num = video.getFrameNumber()
 
     # Record variables
@@ -54,9 +54,12 @@ if __name__ == '__main__' :
             init_bbox = sift.getBoxFromPt(pt, DEFAULT_BBOX)
         else:
             if DO_MP:
-                init_bbox = MLP_Detection_MP(frame, clf, NUM_THREADS, PROB_CRITERIA, record_size=RECORD_SIZE)
+                init_bbox = MLP_Detection_MP(frame, clf, NUM_THREADS, PROB_CRITERIA, step_size=STEP_SIZE, record_size=RECORD_SIZE)
             else:
-                init_bbox = MLP_Detection(frame, clf, PROB_CRITERIA, record_size=RECORD_SIZE)
+                init_bbox = MLP_Detection(frame, clf, PROB_CRITERIA, step_size=STEP_SIZE, record_size=RECORD_SIZE)
+            # Stop if both methods failed
+            if init_bbox is None:
+                raise ValueError("Initial Tracking Failed!!!")
 
     # Initialize tracker with first frame and bounding box
     print "image {} / {}, initial bbox: {}".format(video.getFrameIdx(), frame_num, init_bbox) 
@@ -79,8 +82,15 @@ if __name__ == '__main__' :
         # Update tracker
         ok, bbox = tracker.update(frame)
 
-        # Crop patch and analysis using histogram
-        ok, hist, dist = cropImageAndAnalysis(clf, frame, bbox, hist, HOG, USE_CLF)
+        # bbox limitation (fixed w and h)
+        if ok and (tracker_type == "KCF" or bbox[2] * bbox[3] <= 0):
+            bbox = list(bbox)
+            bbox[2:] = [init_bbox[2], init_bbox[3]]
+            bbox = tuple(bbox)
+
+        if ok:
+            # Crop patch and analysis using histogram
+            ok, hist, dist = cropImageAndAnalysis(clf, frame, bbox, hist, HOG, USE_CLF)
 
         # Print out current info.
         print "image {} / {}, bbox: {}, feature distance: {}".format(video.getFrameIdx(), 
@@ -114,9 +124,9 @@ if __name__ == '__main__' :
                     bbox = sift.getBoxFromPt(pt, DEFAULT_BBOX)
             else: # Use HOG + MLP
                 if DO_MP:
-                    bbox = MLP_Detection_MP(frame, clf, NUM_THREADS, PROB_CRITERIA, record_size=RECORD_SIZE)
+                    bbox = MLP_Detection_MP(frame, clf, NUM_THREADS, PROB_CRITERIA, step_size=STEP_SIZE, record_size=RECORD_SIZE)
                 else:
-                    bbox = MLP_Detection(frame, clf, PROB_CRITERIA, record_size=RECORD_SIZE)
+                    bbox = MLP_Detection(frame, clf, PROB_CRITERIA, step_size=STEP_SIZE, record_size=RECORD_SIZE)
                 if bbox is None:
                     print "   Tracking Failed! Skip current frame..."
                     cv2.putText(frame, "Tracking Failed! Skip current frame...", (100,150), cv2.FONT_HERSHEY_SIMPLEX, 2.0,(0,0,255),5)

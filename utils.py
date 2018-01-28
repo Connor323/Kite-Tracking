@@ -7,6 +7,7 @@ import numpy as np
 from skimage.feature import hog
 from sklearn.externals import joblib
 
+import kcftracker
 from sift import SIFT
 from MLP import MLP_Detection, MLP_Detection_MP
 from video import Video
@@ -24,10 +25,13 @@ def cropImageAndHistogram(image, bbox, HOG=False):
     crop_y_min = int(max(0, bbox[1] - PATCH_MARGIN))
     crop_y_max = int(min(h - 1, bbox[1] + bbox[3] + PATCH_MARGIN))
 
-    patch = image[crop_y_min:crop_y_max+1, crop_x_min:crop_x_max+1]
-    tmp = patch.copy()
+    patch = image[crop_y_min:crop_y_max, crop_x_min:crop_x_max]
+    if patch.shape[0] != bbox[3] or patch.shape[1] != bbox[2]: # image edge case
+        return None
+
     if not HOG:
-        hist = [cv2.calcHist([tmp], [i], None, [256], [0,256]) for i in range(3)]
+        hist = np.array(patch).astype(float) / 255
+        hist -= np.mean(hist)
     else:
         hist = [hog(patch[..., i], orientations=9, 
                                    pixels_per_cell=(8, 8), 
@@ -45,6 +49,8 @@ def cropImageAndAnalysis(clf, image, bbox, prevHist, HOG=False, USE_CLF=True):
     assert clf is not None, "No classifier loaded!"
 
     hist = cropImageAndHistogram(image, bbox, HOG)
+    if hist is None: # crop image size is incorrect (near the edge)
+        return False, prevHist, None
     if USE_CLF:
         pred = clf.predict([hist])
         dist = computeHistDist(hist, prevHist)
@@ -81,7 +87,8 @@ def creat_tracker(tracker_type):
         if tracker_type == 'MIL':
             tracker = cv2.TrackerMIL_create()
         if tracker_type == 'KCF':
-            tracker = cv2.TrackerKCF_create()
+            # tracker = cv2.TrackerKCF_create()
+            tracker = kcftracker.KCFTracker(False, True, True)  # hog, fixed_window, multiscale
         if tracker_type == 'TLD':
             tracker = cv2.TrackerTLD_create()
         if tracker_type == 'MEDIANFLOW':
