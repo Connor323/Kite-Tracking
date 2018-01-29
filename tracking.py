@@ -4,18 +4,14 @@ import os
 import imageio
 import glob
 import numpy as np
-from sklearn.externals import joblib
 
-from sift import SIFT
-from MLP import MLP_Detection, MLP_Detection_MP
+from MLP import MLP_Detection_MP
 from video import Video
 from utils import * 
 from config import *
 
 if __name__ == '__main__' :
     # Set up tracker.
-    if not USE_CLF:
-        sift = SIFT(ROI, TEMPLATE_PATH)
     tracker = creat_tracker(tracker_type)
  
     # Read video
@@ -44,22 +40,12 @@ if __name__ == '__main__' :
         print 'Cannot read video file'
         sys.exit()
  
-    # Use SIFT/MLP find init_bbox if init_bbox is none
+    # Use MLP find init_bbox if init_bbox is none
     if init_bbox is None:
-        if not USE_CLF: 
-            pt = sift.compute(frame)
-            # Stop if both methods failed
-            if pt is None:
-                raise ValueError("Initial Tracking Failed!!!")
-            init_bbox = sift.getBoxFromPt(pt, DEFAULT_BBOX)
-        else:
-            if DO_MP:
-                init_bbox = MLP_Detection_MP(frame, clf, NUM_THREADS, PROB_CRITERIA, step_size=STEP_SIZE, record_size=RECORD_SIZE)
-            else:
-                init_bbox = MLP_Detection(frame, clf, PROB_CRITERIA, step_size=STEP_SIZE, record_size=RECORD_SIZE)
-            # Stop if both methods failed
-            if init_bbox is None:
-                raise ValueError("Initial Tracking Failed!!!")
+        init_bbox = MLP_Detection_MP(frame, init_detection=True)
+        # Stop if both methods failed
+        if init_bbox is None:
+            raise ValueError("Initial Tracking Failed!!!")
 
     # Initialize tracker with first frame and bounding box
     print "image {} / {}, initial bbox: {}".format(video.getFrameIdx(), frame_num, init_bbox) 
@@ -68,8 +54,6 @@ if __name__ == '__main__' :
     # Draw initial bbox
     frame = drawBox(frame, init_bbox)
 
-    # Crop patch and analysis using histogram
-    hist = cropImageAndHistogram(frame, init_bbox, HOG)
     while True:
         # Read a new frame
         ok, frame = video.read()
@@ -90,13 +74,10 @@ if __name__ == '__main__' :
 
         if ok:
             # Crop patch and analysis using histogram
-            ok, hist, dist = cropImageAndAnalysis(clf, frame, bbox, hist, HOG, USE_CLF)
+            ok = cropImageAndAnalysis(clf, frame, bbox)
 
         # Print out current info.
-        print "image {} / {}, bbox: {}, feature distance: {}".format(video.getFrameIdx(), 
-                                                                     frame_num, 
-                                                                     bbox, 
-                                                                     dist) 
+        print "image {} / {}, bbox: {}".format(video.getFrameIdx(), frame_num, np.array(bbox).astype(int)) 
  
         # Draw bounding box
         if ok:
@@ -105,46 +86,23 @@ if __name__ == '__main__' :
         else :
             # Tracking failure
             print "   %s Failed! Use classifier!" % tracker_type
-            if not USE_CLF: # Use SIFT
-                pt = sift.compute(frame)
-                # Stop if both methods failed
-                if pt is None:
-                    print "   Tracking Failed! Skip current frame..."
-                    cv2.putText(frame, "Tracking Failed! Skip current frame...", (100,150), cv2.FONT_HERSHEY_SIMPLEX, 2.0,(0,0,255),5)
-                    video_writer.append_data(displayFrame(frame, RECORD_SIZE))
-                    frames_counter += 1
-                    # Exit if Space pressed
-                    k = cv2.waitKey(10)
-                    if k == 32 : break
-                    continue
-                # Update bbox per SIFI point
-                if bbox[2] * bbox[3]:
-                    bbox = sift.getBoxFromPt(pt, bbox)
-                else:
-                    bbox = sift.getBoxFromPt(pt, DEFAULT_BBOX)
-            else: # Use HOG + MLP
-                if DO_MP:
-                    bbox = MLP_Detection_MP(frame, clf, NUM_THREADS, PROB_CRITERIA, step_size=STEP_SIZE, record_size=RECORD_SIZE)
-                else:
-                    bbox = MLP_Detection(frame, clf, PROB_CRITERIA, step_size=STEP_SIZE, record_size=RECORD_SIZE)
-                if bbox is None:
-                    print "   Tracking Failed! Skip current frame..."
-                    cv2.putText(frame, "Tracking Failed! Skip current frame...", (100,150), cv2.FONT_HERSHEY_SIMPLEX, 2.0,(0,0,255),5)
-                    video_writer.append_data(displayFrame(frame, RECORD_SIZE))
-                    frames_counter += 1
-                    # Exit if Space pressed
-                    k = cv2.waitKey(10)
-                    if k == 32 : break
-                    continue
+            bbox = MLP_Detection_MP(frame, init_detection=False)
+            if bbox is None:
+                print "   Tracking Failed! Skip current frame..."
+                cv2.putText(frame, "Tracking Failed! Skip current frame...", (100,150), cv2.FONT_HERSHEY_SIMPLEX, 2.0,(0,0,255),5)
+                video_writer.append_data(displayFrame(frame, RECORD_SIZE))
+                frames_counter += 1
+                # Exit if Space pressed
+                k = cv2.waitKey(10)
+                if k == 32 : break
+                continue
             
             # Draw bbox
             frame = drawBox(frame, bbox)
             # Reinitialize tracker
             del tracker # release the object space
-            # tracker.clear()
             tracker = creat_tracker(tracker_type)
-            tracker.init(frame, bbox) # TODO: This step might have problem after running for a few times
-            hist = cropImageAndHistogram(frame, bbox, HOG)
+            tracker.init(frame, bbox) 
  
         # Calculate Frames per second (FPS)
         fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer);

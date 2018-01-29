@@ -5,72 +5,108 @@ import imageio
 import glob
 import numpy as np
 from skimage.feature import hog
-from sklearn.externals import joblib
 
 import kcftracker
-from sift import SIFT
-from MLP import MLP_Detection, MLP_Detection_MP
 from video import Video
 from config import *
 
 # Version check
 (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
 
-def cropImageAndHistogram(image, bbox, HOG=False):
-    # Crop patch and analysis using histogram
+def swapChannels(image):
+    """
+    Convert BGR -> RGB
+    """
+    image = image.copy()
+    tmp = image[..., 0].copy()
+    image[..., 0] = image[..., 2].copy()
+    image[..., 2] = tmp.copy()
+    return image
+
+def process_bs(image, downsample_rate=2, low_area=50, up_area=1000, return_centroids=False):
+    """
+    This function applies the BS model given the current frame and implements the morphological 
+    operation and region growing as the post process. 
+
+    Params: 
+        image: current frame 
+        downsample_rate: downsampling the image for faster speed. 
+        low_area: minimum area of target
+        up_area: maximum area of target
+        return_centroids: if True, reture the centroid of selected areas
+    Return: 
+        final_labels: binary image obtained from BS
+        centroids: centroid of selected areas on if return_centroids == True
+    """
+    # process background substraction
+    h, w = image.shape[:2]
+    # Downsample the image for faster speed
+    image_resize = cv2.resize(image, (w / downsample_rate, h / downsample_rate))
+
+    fgmask = fgbg.apply(image_resize)
+    # fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, fgbg_kernel) # remove small items
+    fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, fgbg_kernel) # fill holes
+    
+    # obtain the regions in range of area (low_area, up_area)
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(fgmask.astype(np.uint8), connectivity=8)
+    select_labels = np.where((stats[..., -1] > low_area) * (stats[..., -1] < up_area) * centroids[..., -1] > h / downsample_rate / 2)[0]
+
+    # refine the labels
+    tmp = np.zeros_like(labels).astype(np.uint8)
+    for select_label in select_labels: 
+        tmp[labels == select_label] = 255
+    final_labels = cv2.resize(tmp, (w, h), cv2.INTER_NEAREST)
+
+    if DEBUG_MODE:
+        tmp_show = cv2.resize(tmp, RECORD_SIZE, cv2.INTER_NEAREST)
+        cv2.imshow("BS result", tmp_show)
+    
+    if not return_centroids:
+        return final_labels
+    else:
+        centroids = centroids[select_labels]
+        centroids *= 2
+        return final_labels, centroids.astype(int)
+
+def cropImageFromBS(image, bbox):
+    """
+    Crop patch and analysis using histogram
+
+    Params: 
+        image: current frame
+        bbox: bounding box
+
+    """
+    image = process_bs(image, low_area=MIN_AREA, up_area=MAX_AREA)
     h, w = image.shape[:2]
 
-    crop_x_min = int(max(0, bbox[0] - PATCH_MARGIN))
-    crop_x_max = int(min(w - 1, bbox[0] + bbox[2] + PATCH_MARGIN))
-    crop_y_min = int(max(0, bbox[1] - PATCH_MARGIN))
-    crop_y_max = int(min(h - 1, bbox[1] + bbox[3] + PATCH_MARGIN))
+    crop_x_min = int(max(0, bbox[0]))
+    crop_x_max = int(min(w - 1, bbox[0] + bbox[2]))
+    crop_y_min = int(max(0, bbox[1]))
+    crop_y_max = int(min(h - 1, bbox[1] + bbox[3]))
 
     patch = image[crop_y_min:crop_y_max, crop_x_min:crop_x_max]
     if patch.shape[0] != bbox[3] or patch.shape[1] != bbox[2]: # image edge case
         return None
 
-    if not HOG:
-        hist = np.array(patch).astype(float) / 255
-        hist -= np.mean(hist)
-    else:
-        hist = [hog(patch[..., i], orientations=9, 
-                                   pixels_per_cell=(8, 8), 
-                                   cells_per_block=(3, 3), 
-                                   block_norm="L2", 
-                                   visualise=False) for i in range(3)]
-    hist = np.array(hist)
-    hist = hist.reshape(hist.size)
-    return hist
+    return patch
 
-def computeHistDist(currHist, prevHist):
-    return np.linalg.norm(np.abs(currHist - prevHist))
+def cropImageAndAnalysis(clf, image, bbox):
+    """
+    Determine if the current patch contains target
 
-def cropImageAndAnalysis(clf, image, bbox, prevHist, HOG=False, USE_CLF=True):
+    Params: 
+        image: current frame
+        bbox: bounding box
+    """
     assert clf is not None, "No classifier loaded!"
 
-    hist = cropImageAndHistogram(image, bbox, HOG)
-    if hist is None: # crop image size is incorrect (near the edge)
-        return False, prevHist, None
-    if USE_CLF:
-        pred = clf.predict([hist])
-        dist = computeHistDist(hist, prevHist)
-        if pred == 1: # find object
-            return True, hist, dist # for now, don't count the score in.
-            # score = clf.predict_proba(fd)[0][pred]
-            # score = clf.decision_function([hist])
-            # if score > SCORE_CRITERIA:
-            #     return True, hist, dist
-            # else:
-            #     return False, hist, dist
-        else:
-            return False, hist, dist
-    else:
-        dist = computeHistDist(hist, prevHist)
-        prevHist = hist
-        if dist > THRESHOLD_VALUE:
-            return False, hist, dist
-        else: 
-            return True, hist, dist
+    patch = cropImageFromBS(image, bbox)
+    if patch is None: # crop image size is incorrect (near the edge)
+        return False
+    if np.sum(patch != 0) > 100:
+        return True
+    return False
 
 def drawBox(image, bbox):
     p1 = (int(bbox[0]), int(bbox[1]))
@@ -87,7 +123,7 @@ def creat_tracker(tracker_type):
         if tracker_type == 'MIL':
             tracker = cv2.TrackerMIL_create()
         if tracker_type == 'KCF':
-            # tracker = cv2.TrackerKCF_create()
+            # tracker = cv2.TrackerKCF_create() # OpenCV KCF is not good
             tracker = kcftracker.KCFTracker(False, True, True)  # hog, fixed_window, multiscale
         if tracker_type == 'TLD':
             tracker = cv2.TrackerTLD_create()
@@ -100,7 +136,5 @@ def creat_tracker(tracker_type):
 def displayFrame(frame, resize=(250, 250)):
     frame_resize = cv2.resize(frame, resize)
     cv2.imshow("Tracking", frame_resize)
-    tmp = frame_resize[..., 0].copy()
-    frame_resize[..., 0] = frame_resize[..., 2].copy()
-    frame_resize[..., 2] = tmp
+    frame_resize = swapChannels(frame_resize)
     return frame_resize

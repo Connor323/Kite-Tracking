@@ -5,90 +5,99 @@ import time
 import threading
 
 from config import *
+from utils import *
 
-def sliding_window(image, window_size, step_size):
-    '''
-    This function returns a patch of the input image `image` of size equal
-    to `window_size`. The first image returned top-left co-ordinates (0, 0) 
-    and are increment in both x and y directions by the `step_size` supplied.
-    So, the input parameters are -
-    * `image` - Input Image
-    * `window_size` - Size of Sliding Window
-    * `step_size` - Incremented Size of Window
+def MLP_Detection_MP(image, init_detection=False):
+    """
+    Use MLP for localization for the initial detection or general localization. 
 
-    The function returns a tuple -
-    (x, y, im_window)
-    where
-    * x is the top-left x co-ordinate
-    * y is the top-left y co-ordinate
-    * im_window is the sliding window image
-    '''
-    for y in xrange(image.shape[0]/2, image.shape[0], step_size[1]):
-        for x in xrange(0, image.shape[1], step_size[0]):
-            yield (x, y, image[y:y + window_size[1], x:x + window_size[0]])
+    Params:
+        image: current frame
+        init_detection: if it is the initial detection
+    Return:
+        bbox
+    """
 
-def swapChannels(image):
-    image = image.copy()
-    tmp = image[..., 0].copy()
-    image[..., 0] = image[..., 2].copy()
-    image[..., 2] = tmp.copy()
-    return image
-
-def MLP_Detection_MP(image, clf, total_num_thread=8, criteria=0.9999, min_wdw_sz=(51, 51), step_size=(25, 25), visualize_det=True, record_size=(512, 512)):
     h, w = image.shape[:2]
 
     def sliding_window_mp(thread_id):
         blocks = []
 
-        num_block_x = (w - min_wdw_sz[0]) / step_size[0] + 1
-        num_block_y = (h / 2 - min_wdw_sz[1]) / step_size[1] + 1
+        num_block_x = (w - BBOX_SIZE[0]) / STEP_SIZE[0] + 1
+        num_block_y = (h / 2 - BBOX_SIZE[1]) / STEP_SIZE[1] + 1
         num_blocks = num_block_x * num_block_y
 
-        for i in xrange(thread_id, num_blocks, total_num_thread):
-            x = i % num_block_x * step_size[0]
-            y = h / 2 + i / num_block_x * step_size[1]
-            blocks.append((x, y, image[y:y + min_wdw_sz[1], x:x + min_wdw_sz[0]]))
+        for i in xrange(thread_id, num_blocks, NUM_THREADS):
+            x = i % num_block_x * STEP_SIZE[0]
+            y = h / 2 + i / num_block_x * STEP_SIZE[1]
+            blocks.append((x, y, image[y:y + BBOX_SIZE[1], x:x + BBOX_SIZE[0]]))
         return blocks
 
-    def work(thread_id, total_num_thread, image, result):
+    def work(thread_id, image, result):
         blocks = sliding_window_mp(thread_id)
         for idx, (x, y, im_window) in enumerate(blocks):
-            if im_window.shape[0] != min_wdw_sz[1] or im_window.shape[1] != min_wdw_sz[0]:
+            if im_window.shape[0] != BBOX_SIZE[1] or im_window.shape[1] != BBOX_SIZE[0]:
                 continue
-
-            if not USE_CNN:
-                if HOG:
-                    # Calculate the HOG features
-                    fd = [hog(im_window[..., i], orientations=9, 
-                                                 pixels_per_cell=(8, 8), 
-                                                 cells_per_block=(3, 3), 
-                                                 block_norm="L2", 
-                                                 visualise=False) for i in range(3)]
-                    fd = np.array(fd)
-                else:
-                    fd = np.array(im_window).astype(float) / 255
-                    fd -= np.mean(fd)
-                fd = [fd.reshape(fd.size)]
-                pred = clf.predict(fd)
-            else:
-                pred = clf.predict(np.array([im_window]))
+            
+            # Calculate the HOG features
+            fd = [hog(im_window[..., i], orientations=9, 
+                                         pixels_per_cell=(8, 8), 
+                                         cells_per_block=(3, 3), 
+                                         block_norm="L2", 
+                                         visualise=False) for i in range(3)]
+            fd = np.array(fd)
+            fd = [fd.reshape(fd.size)]
+            pred = clf.predict(fd)
             if pred == 1:
                 currScore = float(clf.predict_proba(fd)[0][pred])
-                tmp = (x, y, int(min_wdw_sz[0]), int(min_wdw_sz[1]), currScore)
+                tmp = (x, y, int(BBOX_SIZE[0]), int(BBOX_SIZE[1]), currScore)
                 result.append(tmp)
+    
+    def work_bg(image, centroid, result):
+        x, y = centroid[0] - BBOX_SIZE[0] / 2, centroid[1] - BBOX_SIZE[1] / 2
+        im_window = image[y: y + BBOX_SIZE[1], 
+                          x: x + BBOX_SIZE[0]]
         
-    # Swap image channel from BGR to RGB
-    image = swapChannels(image)
-    h, w = image.shape[:2]
+        if im_window.shape[0] != BBOX_SIZE[1] or im_window.shape[1] != BBOX_SIZE[0]:
+            return 
 
-    # Assign jobs
-    tic = time.time()
-    threads = []
-    results = [[] for _ in range(total_num_thread)]
-    for thread_id, result in enumerate(results):
-        t = threading.Thread(target=work, args=(thread_id, total_num_thread, image, result))
-        t.start()
-        threads.append(t)
+        fd = hog(im_window, orientations=9, 
+                            pixels_per_cell=(8, 8), 
+                            cells_per_block=(3, 3), 
+                            block_norm="L2", 
+                            visualise=False)
+        fd = np.array(fd)
+        fd = [fd.reshape(fd.size)]
+        pred = bg_clf.predict(fd)
+        if pred == 1:
+            currScore = float(bg_clf.predict_proba(fd)[0][pred])
+            tmp = (x, y, int(BBOX_SIZE[0]), int(BBOX_SIZE[1]), currScore)
+            result.append(tmp)
+
+    bs_image, centroids = process_bs(image, return_centroids=True)
+    if not init_detection:
+        # Assign jobs
+        tic = time.time()
+        threads = []
+        results = [[] for _ in range(NUM_THREADS)]
+        for centroid, result in zip(centroids, results):
+            t = threading.Thread(target=work_bg, args=(bs_image, centroid, result))
+            t.start()
+            threads.append(t)
+
+    else:  
+        # Swap image channel from BGR to RGB
+        image = swapChannels(image)
+        h, w = image.shape[:2]
+
+        # Assign jobs
+        tic = time.time()
+        threads = []
+        results = [[] for _ in range(NUM_THREADS)]
+        for thread_id, result in enumerate(results):
+            t = threading.Thread(target=work, args=(thread_id, image, result))
+            t.start()
+            threads.append(t)
 
     # Wait for computing
     still_alive = True
@@ -113,89 +122,26 @@ def MLP_Detection_MP(image, clf, total_num_thread=8, criteria=0.9999, min_wdw_sz
     print "Final score: %f, total number of detections: %d" % (score, len(detections))
     # If visualize is set to true, display the working
     # of the sliding window 
-    if visualize_det: 
+    if DEBUG_MODE: 
         clone = image.copy()
         for x1, y1, _, _ in detections:
             # Draw the detections at this scale
             x1, y1 = int(x1), int(y1)
-            cv2.rectangle(clone, (x1, y1), (x1 + min_wdw_sz[1], y1 +
-                min_wdw_sz[0]), (0, 0, 0), thickness=2)
+            cv2.rectangle(clone, (x1, y1), (x1 + BBOX_SIZE[1], y1 +
+                BBOX_SIZE[0]), (0, 0, 0), thickness=2)
 
         # Draw current best
         if final_select is not None:
             x1, y1, _, _ = final_select
             x1, y1 = int(x1), int(y1)
-            cv2.rectangle(clone, (x1, y1), (x1 + min_wdw_sz[1], y1 +
-                min_wdw_sz[0]), (0, 255, 0), thickness=2)
-        clone_resize = cv2.resize(clone, record_size)
-        clone_resize = swapChannels(clone_resize)
+            cv2.rectangle(clone, (x1, y1), (x1 + BBOX_SIZE[1], y1 +
+                BBOX_SIZE[0]), (0, 255, 0), thickness=2)
+        clone_resize = cv2.resize(clone, RECORD_SIZE)
+        if init_detection:
+            clone_resize = swapChannels(clone_resize)
         cv2.imshow("Sliding Window in Progress", clone_resize)
 
-    if score >= criteria:
-        return tuple(final_select)
-    else:
-        return None
-
-
-def MLP_Detection(image, clf, criteria=0.9999, min_wdw_sz=(51, 51), step_size=(25, 25), visualize_det=True, record_size=(512, 512)):
-    # Swap image channel from BGR to RGB
-    image = swapChannels(image)
-    # List to store the detections
-    detections = []
-    final_select = None
-    score = 0
-    # This list contains detections at the current scale
-    cd = []
-    for (x, y, im_window) in sliding_window(image, min_wdw_sz, step_size):
-        if im_window.shape[0] != min_wdw_sz[1] or im_window.shape[1] != min_wdw_sz[0]:
-            continue
-        if HOG:
-            # Calculate the HOG features
-            fd = [hog(im_window[..., i], orientations=9, 
-                                         pixels_per_cell=(8, 8), 
-                                         cells_per_block=(3, 3), 
-                                         block_norm="L2", 
-                                         visualise=False) for i in range(3)]
-            fd = np.array(fd)
-        else:
-            fd = np.array(im_window).astype(float) / 255
-            fd -= np.mean(fd)
-        fd = [fd.reshape(fd.size)]
-        pred = clf.predict(fd)
-        if pred == 1:
-            # currScore = clf.decision_function(fd)
-            currScore = clf.predict_proba(fd)[0][pred]
-            print  "Detection:: Location -> ({}, {})".format(x, y)
-            print "    Confidence Score {}".format(currScore)
-            detections.append((x, y, int(min_wdw_sz[0]), int(min_wdw_sz[1])))
-            cd.append(detections[-1])
-            # Select the one with max score
-            if score < currScore:
-                print "Current best! \n"
-                final_select = np.array(detections[-1]).tolist()
-                score = currScore
-
-        # If visualize is set to true, display the working
-        # of the sliding window
-        if visualize_det:
-            clone = image.copy()
-            for x1, y1, _, _ in cd:
-                # Draw the detections at this scale
-                cv2.rectangle(clone, (x1, y1), (x1 + im_window.shape[1], y1 +
-                    im_window.shape[0]), (0, 0, 0), thickness=2)
-            cv2.rectangle(clone, (x, y), (x + im_window.shape[1], y +
-                im_window.shape[0]), (255, 255, 255), thickness=2)
-            
-            # Draw current best
-            if final_select is not None:
-                x1, y1, _, _ = final_select
-                cv2.rectangle(clone, (x1, y1), (x1 + im_window.shape[1], y1 +
-                    im_window.shape[0]), (0, 255, 0), thickness=2)
-            clone_resize = cv2.resize(clone, record_size)
-            clone_resize = swapChannels(clone_resize)
-            cv2.imshow("Sliding Window in Progress", clone_resize)
-            cv2.waitKey(30)
-    if score >= criteria:
+    if score >= PROB_CRITERIA:
         return tuple(final_select)
     else:
         return None

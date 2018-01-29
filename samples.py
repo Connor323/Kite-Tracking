@@ -9,6 +9,8 @@ from subprocess import call
 
 from sift import SIFT
 from video import Video
+from utils import *
+from config import *
 
 # Version check
 (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
@@ -52,11 +54,12 @@ call(["mkdir", "-p", POS_SAMPLE_PATH])
 call(["mkdir", "-p", NEG_SAMPLE_PATH])
 
 SAMPLE_SIZE = (51, 51)
-POS_CRITERIR = 0.6
-POS_SAMPLE_PER_FRAME = 6
-NEG_SAMPLE_PER_FRAME = 4
-EDGE_SAMPLE_PER_FRAME = 4
+POS_CRITERIR = 0.8
+POS_SAMPLE_PER_FRAME = 3
+NEG_SAMPLE_PER_FRAME = 6
+EDGE_SAMPLE_PER_FRAME = 0
 EDGE_RANGE = 400
+MAX_LOOP = 1000
 ####################################################################
 
 ####################### helper functions ###########################
@@ -120,8 +123,8 @@ def creat_tracker(tracker_type):
     return tracker
 
 def create_sample(image, bbox, num_pos=10, num_neg=10, edge_sample=10, pos_criteria=0.8):
+    h, w = image.shape[:2]
     def cropImage(image, bbox):
-        h, w = image.shape[:2]
         if bbox[0] < 0 or bbox[1] < 0 or bbox[0] + bbox[2] >= w or bbox[1] + bbox[3] >= h:
             return None
         bbox = np.array(bbox).astype(int)
@@ -130,6 +133,12 @@ def create_sample(image, bbox, num_pos=10, num_neg=10, edge_sample=10, pos_crite
     pos_samples, neg_samples = [], []
     pos_bboxs, neg_bboxs = [], []
     bbox = np.array(bbox)
+
+    tmp, centroids = process_bs(image, return_centroids=True)
+    if np.mean(tmp) < 1e-6:
+        return pos_samples, neg_samples, pos_bboxs, neg_bboxs
+    else:
+        image = tmp
 
     # create positive samples
     while len(pos_samples) < num_pos:
@@ -142,29 +151,23 @@ def create_sample(image, bbox, num_pos=10, num_neg=10, edge_sample=10, pos_crite
             pos_samples.append(patch)
             pos_bboxs.append(tmp_bbox)
 
-    # create negative samples (Half of them are surrounding the bbox)
-    while len(neg_samples) < num_neg:
+    # create negative samples based on negative regions
+    bbox_c= np.array([bbox[0] + bbox[2]/2, bbox[1] + bbox[3]/2])
+    counter = 0
+    while len(neg_samples) < num_neg + edge_sample and counter < MAX_LOOP:
+        counter += 1
+        centroid = centroids[np.random.randint(0, len(centroids))]
+        if np.linalg.norm(centroid - bbox_c) < (bbox[2] + bbox[3]) / 2 or centroid[1] < h / 2:
+           continue
+        rand_x = np.random.randint(-bbox[2]/4, bbox[2]/4)
+        rand_y = np.random.randint(-bbox[3]/4, bbox[3]/4)
         tmp_bbox = bbox.copy()
-        rand_x = np.random.randint(-bbox[2], bbox[2])
-        rand_y = np.random.randint(-bbox[3], bbox[3])
-        tmp_bbox[0] += rand_x + bbox[2] if rand_x > 0 else rand_x - bbox[2]
-        tmp_bbox[1] += rand_y + bbox[3] if rand_y > 0 else rand_y - bbox[3]
+        tmp_bbox[0] = centroid[0]  - bbox[2]/2
+        tmp_bbox[1] = centroid[1]  - bbox[3]/2
         patch = cropImage(image, tmp_bbox)
         if patch is not None:
-            assert patch.shape[:2] == SAMPLE_SIZE, "{} != {}".format(patch.shape[:2], SAMPLE_SIZE)
-            neg_samples.append(patch)
-            neg_bboxs.append(tmp_bbox)
-
-    # create edge samples
-    h, w = image.shape[:2]
-    while len(neg_samples) < num_neg + edge_sample:
-        tmp_bbox = bbox.copy()
-        rand_x = np.random.randint(-EDGE_RANGE+bbox[2], EDGE_RANGE)
-        rand_y = np.random.randint(-EDGE_RANGE, -bbox[3])
-        tmp_bbox[0] = rand_x if rand_x >= 0 else w + rand_x
-        tmp_bbox[1] = rand_y + h
-        patch = cropImage(image, tmp_bbox)
-        if patch is not None:
+            if np.mean(patch) < 1e-6:
+                continue
             assert patch.shape[:2] == SAMPLE_SIZE, "{} != {}".format(patch.shape[:2], SAMPLE_SIZE)
             neg_samples.append(patch)
             neg_bboxs.append(tmp_bbox)
