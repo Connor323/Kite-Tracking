@@ -68,6 +68,45 @@ def process_bs(image, downsample_rate=2, low_area=50, up_area=1000, return_centr
         centroids *= 2
         return final_labels, centroids.astype(int)
 
+def twistAndCrop(image, bbox):
+    """
+    Twist the bbox to find the one with maximum area of foreground.
+
+    Params:
+        image: BS result (binary image)
+        bbox: bounding box
+    Return:
+        refined bbox
+        patch
+    """
+    h, w = image.shape[:2]
+    twists = [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [0, -1], [-1, -1], [1, -1], [-1, 1]]
+    
+    bbox = np.array(bbox)
+    patch = None
+    refined_bbox = None
+    max_area = -1
+
+    for twist in twists:
+        tmp_bbox = bbox
+        tmp_bbox[2:] = bbox[2:] + np.array(twist) * BBOX_TWIST_SIZE
+
+        crop_x_min = int(max(0, tmp_bbox[0]))
+        crop_x_max = int(min(w - 1, tmp_bbox[0] + tmp_bbox[2]))
+        crop_y_min = int(max(0, tmp_bbox[1]))
+        crop_y_max = int(min(h - 1, tmp_bbox[1] + tmp_bbox[3]))
+        patch = image[crop_y_min:crop_y_max, crop_x_min:crop_x_max]
+
+        if patch.shape[0] != bbox[3] or patch.shape[1] != bbox[2]: # image edge case
+            patch = None
+            continue
+        else:
+            area = np.sum(patch != 0)
+            if area > max_area:
+                max_area = area
+                refined_bbox = tmp_bbox
+    return patch, refined_bbox
+
 def cropImageFromBS(image, bbox):
     """
     Crop patch and analysis using histogram
@@ -75,21 +114,11 @@ def cropImageFromBS(image, bbox):
     Params: 
         image: current frame
         bbox: bounding box
-
     """
     image = process_bs(image, low_area=MIN_AREA, up_area=MAX_AREA)
-    h, w = image.shape[:2]
+    patch, refined_bbox = twistAndCrop(image, bbox)
 
-    crop_x_min = int(max(0, bbox[0]))
-    crop_x_max = int(min(w - 1, bbox[0] + bbox[2]))
-    crop_y_min = int(max(0, bbox[1]))
-    crop_y_max = int(min(h - 1, bbox[1] + bbox[3]))
-
-    patch = image[crop_y_min:crop_y_max, crop_x_min:crop_x_max]
-    if patch.shape[0] != bbox[3] or patch.shape[1] != bbox[2]: # image edge case
-        return None
-
-    return patch
+    return patch, refined_bbox
 
 def cropImageAndAnalysis(clf, image, bbox):
     """
@@ -101,12 +130,12 @@ def cropImageAndAnalysis(clf, image, bbox):
     """
     assert clf is not None, "No classifier loaded!"
 
-    patch = cropImageFromBS(image, bbox)
+    patch, refined_bbox = cropImageFromBS(image, bbox)
     if patch is None: # crop image size is incorrect (near the edge)
-        return False
-    if np.sum(patch != 0) > 100:
-        return True
-    return False
+        return False, None
+    if np.sum(patch != 0) > TRACKING_CRITERIA_AREA:
+        return True, refined_bbox
+    return False, None
 
 def drawBox(image, bbox):
     p1 = (int(bbox[0]), int(bbox[1]))

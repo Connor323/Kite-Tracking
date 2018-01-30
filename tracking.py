@@ -74,7 +74,9 @@ if __name__ == '__main__' :
 
         if ok:
             # Crop patch and analysis using histogram
-            ok = cropImageAndAnalysis(clf, frame, bbox)
+            ok, refined_bbox = cropImageAndAnalysis(clf, frame, bbox)
+            if ok:
+                bbox = refined_bbox
 
         # Print out current info.
         print "image {} / {}, bbox: {}".format(video.getFrameIdx(), frame_num, np.array(bbox).astype(int)) 

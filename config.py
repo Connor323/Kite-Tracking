@@ -10,6 +10,7 @@ tracker_type = tracker_types[2]
 
 # image and template path
 IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
+# IMAGE_PATH = "../images/cloudy0/*.bmp"
 TEMPLATE_PATH = "templates/kite0/*.png"
 
 START_FRAME = None # the path to the start frame name, in case we want to start in the middle of video
@@ -28,8 +29,11 @@ fgbg_kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_cl
 fgbg_kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_open_size, fgbg_kernel_open_size))
 fgbg = cv2.bgsegm.createBackgroundSubtractorMOG(history=history_length)
 
-MIN_AREA = 25
-MAX_AREA = 600
+MIN_AREA = 25 # minimum area inside bbox for BS
+MAX_AREA = 600 # maximum area inside bbox for BS
+
+TRACKING_CRITERIA_AREA = 100 # minimum area inside bbox for tracking
+BBOX_TWIST_SIZE = 5
     
 # Classifier setting 
 MLP_MODEL_PATH = "model/mlp_1layer.model"
