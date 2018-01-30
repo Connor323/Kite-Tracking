@@ -13,6 +13,7 @@ IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
 TEMPLATE_PATH = "templates/kite0/*.png"
 
 START_FRAME = None # the path to the start frame name, in case we want to start in the middle of video
+				   # Set None if we want to stat from beginning. 
 
 # File format
 # NOTE: Format 0: 2018-1-18-12-49-0-204-original.bmp
@@ -20,11 +21,15 @@ START_FRAME = None # the path to the start frame name, in case we want to start 
 FILE_FORMAT = 0
 
 # Background Substraction setting 
-fgbg_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-fgbg = cv2.bgsegm.createBackgroundSubtractorMOG()
+fgbg_kernel_close_size = 3 # for morphological closing and opening 
+fgbg_kernel_open_size = 3 # for morphological closing and opening 
+history_length = 100 # buffer of history
+fgbg_kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_close_size, fgbg_kernel_close_size))
+fgbg_kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_open_size, fgbg_kernel_open_size))
+fgbg = cv2.bgsegm.createBackgroundSubtractorMOG(history=history_length)
 
-MIN_AREA = 50
-MAX_AREA = 1000
+MIN_AREA = 25
+MAX_AREA = 600
     
 # Classifier setting 
 MLP_MODEL_PATH = "model/mlp_1layer.model"
@@ -33,10 +38,10 @@ BG_MODEL_PATH  = "model/mlp_bg.model"
 clf = joblib.load(MLP_MODEL_PATH) # MLP_1 for initial bbox detection 
 bg_clf = joblib.load(BG_MODEL_PATH) # MLP_2 for BS detection
 
-PROB_CRITERIA = 0.98 # The prob_thresh value for MLP_2
+PROB_CRITERIA = 0.95 # The prob_thresh value for MLP_2
 
 # Multi-thread boost setting 
-NUM_THREADS = 8
+NUM_THREADS = 16
 
 # Define an initial bounding box
 ROI = [489, 1230, 1407, 609] # The search area when we fail on tracking.
@@ -46,6 +51,7 @@ STEP_SIZE = [51, 51]
 
 # Record setting
 RECORD_SIZE = (512, 512)
+RECORD_FPS = 100
 
 # Debug setting
 DEBUG_MODE = True

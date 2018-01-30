@@ -26,7 +26,7 @@ if __name__ == '__main__' :
 
     # Record variables
     image_name = path.split('/')[-1] + "_" + tracker_type + ".mp4"
-    video_writer = imageio.get_writer(image_name, fps=15)
+    video_writer = imageio.get_writer(image_name, fps=RECORD_FPS)
     frames_counter = 0
 
     # Exit if video not opened.

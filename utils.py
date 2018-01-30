@@ -44,8 +44,8 @@ def process_bs(image, downsample_rate=2, low_area=50, up_area=1000, return_centr
     image_resize = cv2.resize(image, (w / downsample_rate, h / downsample_rate))
 
     fgmask = fgbg.apply(image_resize)
-    # fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, fgbg_kernel) # remove small items
-    fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, fgbg_kernel) # fill holes
+    # fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, fgbg_kernel_open) # remove small items 
+    fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, fgbg_kernel_close) # fill holes
     
     # obtain the regions in range of area (low_area, up_area)
     num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(fgmask.astype(np.uint8), connectivity=8)
@@ -59,7 +59,7 @@ def process_bs(image, downsample_rate=2, low_area=50, up_area=1000, return_centr
 
     if DEBUG_MODE:
         tmp_show = cv2.resize(tmp, RECORD_SIZE, cv2.INTER_NEAREST)
-        cv2.imshow("BS result", tmp_show)
+        cv2.imshow("BS", tmp_show)
     
     if not return_centroids:
         return final_labels
@@ -111,7 +111,7 @@ def cropImageAndAnalysis(clf, image, bbox):
 def drawBox(image, bbox):
     p1 = (int(bbox[0]), int(bbox[1]))
     p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
-    cv2.rectangle(image, p1, p2, (255,255,255), 2, 2)
+    cv2.rectangle(image, p1, p2, (0, 255, 0), 2, 2)
     return image
 
 def creat_tracker(tracker_type):
