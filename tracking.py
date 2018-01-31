@@ -56,8 +56,8 @@ if __name__ == '__main__' :
 
     while True:
         # Read a new frame
-        ok, frame = video.read()
-        if not ok:
+        read_ok, frame = video.read()
+        if not read_ok:
             break
          
         # Start timer
@@ -74,10 +74,11 @@ if __name__ == '__main__' :
 
         if ok:
             # Crop patch and analysis using histogram
-            ok, refined_bbox = cropImageAndAnalysis(clf, frame, bbox)
-            if ok:
-                bbox = refined_bbox
+            ok = cropImageAndAnalysis(clf, frame, bbox)
 
+        # Use decision buffer to make final decision.
+        ok = pushBuffer(ok)
+        
         # Print out current info.
         print "image {} / {}, bbox: {}".format(video.getFrameIdx(), frame_num, np.array(bbox).astype(int)) 
  
