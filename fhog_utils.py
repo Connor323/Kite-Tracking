@@ -1,3 +1,7 @@
+'''
+Code adapted from KCFnb, https://github.com/uoip/KCFnb
+
+'''
 import numpy as np
 from numba.pycc import CC
 import math

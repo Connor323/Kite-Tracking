@@ -1,3 +1,7 @@
+'''
+Code adapted from KCFnb, https://github.com/uoip/KCFnb
+
+'''
 import numpy as np 
 import cv2
 from time import time

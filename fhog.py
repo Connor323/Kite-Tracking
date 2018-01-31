@@ -1,3 +1,7 @@
+'''
+Code adapted from KCFnb, https://github.com/uoip/KCFnb
+
+'''
 import numpy as np 
 import cv2
 from fhog_utils import func1,func2,func3,func4

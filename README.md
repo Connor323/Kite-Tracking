@@ -1,4 +1,4 @@
-This program uses KCF tracker and HOG + MLP for object tracking and localization.  
+This program uses [KCF](https://github.com/uoip/KCFnb) tracker and HOG + MLP for object tracking and localization.  
 
 **Still in progress**
 
