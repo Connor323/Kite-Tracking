@@ -22,11 +22,25 @@ def pushBuffer(res):
     Return:
         ret: boolean
     """
-    def buffer_mode():
+    def buffer_mode(res):
         """
-        Return True if over half of buffer is True; else, return False
+        Return 
+            BUFFER_MODE: 
+                True if over half of buffer is True; else, return False
+            Not BUFFER_MODE: 
+                True if all of buffer is True;
+                False if all of buffer is False;
+                Else: return res.
         """
-        return np.sum(DECISION_BUFFER) >= DECISION_BUFFER_SIZE / 2
+        if BUFFER_MODE:
+            return np.sum(DECISION_BUFFER) > DECISION_BUFFER_SIZE / 2
+        else:
+            if (np.array(DECISION_BUFFER) == True).all():
+                return True
+            elif (np.array(DECISION_BUFFER) == False).all():
+                return False
+            else:
+                return res
     
     def pushpop(res):
         del DECISION_BUFFER[0]
@@ -35,8 +49,10 @@ def pushBuffer(res):
     if len(DECISION_BUFFER) < DECISION_BUFFER_SIZE:
         DECISION_BUFFER.append(res)
         return res
+    elif DECISION_BUFFER_SIZE == 0:
+        return res
     else:
-        ret = buffer_mode()
+        ret = buffer_mode(res)
         pushpop(res)
         return ret
 
@@ -67,10 +83,17 @@ def process_bs(image, downsample_rate=2, low_area=50, up_area=1000, return_centr
     """
     # process background substraction
     h, w = image.shape[:2]
+    
     # Downsample the image for faster speed
     image_resize = cv2.resize(image, (w / downsample_rate, h / downsample_rate))
 
+    # Apply BS 
     fgmask = fgbg.apply(image_resize)
+    
+    if DEBUG_MODE:
+        tmp_show = cv2.resize(fgmask, VIZ_SIZE, cv2.INTER_NEAREST)
+        cv2.imshow("BS Original", tmp_show)
+
     # fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, fgbg_kernel_open) # remove small items 
     fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, fgbg_kernel_close) # fill holes
     
@@ -85,8 +108,8 @@ def process_bs(image, downsample_rate=2, low_area=50, up_area=1000, return_centr
     final_labels = cv2.resize(tmp, (w, h), cv2.INTER_NEAREST)
 
     if DEBUG_MODE:
-        tmp_show = cv2.resize(tmp, RECORD_SIZE, cv2.INTER_NEAREST)
-        cv2.imshow("BS", tmp_show)
+        tmp_show = cv2.resize(tmp, VIZ_SIZE, cv2.INTER_NEAREST)
+        cv2.imshow("BS Post", tmp_show)
     
     if not return_centroids:
         return final_labels
@@ -204,8 +227,9 @@ def creat_tracker(tracker_type):
             tracker = cv2.TrackerGOTURN_create()
     return tracker
 
-def displayFrame(frame, resize=(250, 250)):
-    frame_resize = cv2.resize(frame, resize)
+def displayFrame(frame):
+    frame_resize = cv2.resize(frame, VIZ_SIZE)
     cv2.imshow("Tracking", frame_resize)
+    frame_resize = cv2.resize(frame, RECORD_SIZE)
     frame_resize = swapChannels(frame_resize)
     return frame_resize

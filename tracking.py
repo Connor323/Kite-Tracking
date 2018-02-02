@@ -93,7 +93,7 @@ if __name__ == '__main__' :
             if bbox is None:
                 print "   Tracking Failed! Skip current frame..."
                 cv2.putText(frame, "Tracking Failed! Skip current frame...", (100,150), cv2.FONT_HERSHEY_SIMPLEX, 2.0,(0,0,255),5)
-                video_writer.append_data(displayFrame(frame, RECORD_SIZE))
+                video_writer.append_data(displayFrame(frame))
                 frames_counter += 1
                 # Exit if Space pressed
                 k = cv2.waitKey(10)
@@ -117,7 +117,7 @@ if __name__ == '__main__' :
         cv2.putText(frame, "FPS : " + str(int(fps)), (100,200), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (50,170,50), 5);
  
         # Display result
-        video_writer.append_data(displayFrame(frame, RECORD_SIZE))
+        video_writer.append_data(displayFrame(frame))
         frames_counter += 1
 
         # Exit if Space pressed

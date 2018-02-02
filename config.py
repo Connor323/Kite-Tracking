@@ -11,7 +11,8 @@ tracker_type = tracker_types[2]
 
 ############################# Data Setting #############################
 # image and template path
-IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
+# IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
+IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
 # IMAGE_PATH = "../images/cloudy0/*.bmp"
 TEMPLATE_PATH = "templates/kite0/*.png"
 
@@ -39,30 +40,31 @@ fgbg_kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_ope
 fgbg = cv2.bgsegm.createBackgroundSubtractorMOG(history=history_length)
 
 # BS post-process setting
-MIN_AREA = 25 # minimum area inside bbox for BS
+MIN_AREA = 10 # minimum area inside bbox for BS
 MAX_AREA = 600 # maximum area inside bbox for BS
 ###########################################################################
     
 ############################# Tracking Setting ############################
-PROB_CRITERIA = 0.95 # The prob_thresh value for MLP_2
+PROB_CRITERIA = 0.70 # The prob_thresh value for MLP_2
 NUM_THREADS = 16 # Multi-thread boost setting 
 
-TRACKING_CRITERIA_AREA = 100 # minimum area inside bbox for tracking
+TRACKING_CRITERIA_AREA = 25 # minimum area inside bbox for tracking
 RECENTER_THRESH = 10 # Max distance allowed from the centroid to the center of bbox
 
-DECISION_BUFFER_SIZE = 5 # Decision buffer size
+DECISION_BUFFER_SIZE = 3 # Decision buffer size
 DECISION_BUFFER = [] # Decision buffer
+BUFFER_MODE = False
 ###########################################################################
 
 ############################# BBOX Setting ################################
-ROI = [489, 1230, 1407, 609] # The search area when we fail on tracking.
 init_bbox = None # Use None, if no initial bbox; bbox format: [x_top_left, y_top_left, w, h]
 BBOX_SIZE = [51, 51] # If init_bbox is none, we use the size of defalt bbox for following tracking
 STEP_SIZE = [51, 51] # the moving step for the initial bbox detection scanning
 ###########################################################################
 
 ######################### Record and Debug Setting #########################
-RECORD_SIZE = (512, 512) # Record/visulattion image size
+RECORD_SIZE = (512, 512) # Record image size
+VIZ_SIZE = (400, 400) # Visulattion image size
 RECORD_FPS = 100 # frame per second
 
 DEBUG_MODE = True # if True, will show the BS result and localization result

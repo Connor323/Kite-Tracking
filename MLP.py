@@ -29,7 +29,7 @@ def MLP_Detection_MP(image, init_detection=False):
 
         for i in xrange(thread_id, num_blocks, NUM_THREADS):
             x = i % num_block_x * STEP_SIZE[0]
-            y = h / 2 + i / num_block_x * STEP_SIZE[1]
+            y = i / num_block_x * STEP_SIZE[1]
             blocks.append((x, y, image[y:y + BBOX_SIZE[1], x:x + BBOX_SIZE[0]]))
         return blocks
 
@@ -136,7 +136,7 @@ def MLP_Detection_MP(image, init_detection=False):
             x1, y1 = int(x1), int(y1)
             cv2.rectangle(clone, (x1, y1), (x1 + BBOX_SIZE[1], y1 +
                 BBOX_SIZE[0]), (0, 255, 0), thickness=2)
-        clone_resize = cv2.resize(clone, RECORD_SIZE)
+        clone_resize = cv2.resize(clone, VIZ_SIZE)
         if init_detection:
             clone_resize = swapChannels(clone_resize)
         cv2.imshow("Localization", clone_resize)

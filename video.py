@@ -34,7 +34,7 @@ class Video:
             file = file.split("/")[-1].split("-")
             if self.file_format == 0:
                 tmp = file[-2] 
-                idx.append([int(file[-4]), int(file[-3]), int(tmp)]) 
+                idx.append([int(file[-6]), int(file[-5]), int(file[-4]), int(file[-3]), int(tmp)]) 
             elif self.file_format == 1:
                 tmp = file[-1].split(".")[0] 
                 idx.append([int(file[-2]), int(tmp)]) 
