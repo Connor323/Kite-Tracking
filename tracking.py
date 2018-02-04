@@ -95,9 +95,10 @@ if __name__ == '__main__' :
                 cv2.putText(frame, "Tracking Failed! Skip current frame...", (100,150), cv2.FONT_HERSHEY_SIMPLEX, 2.0,(0,0,255),5)
                 video_writer.append_data(displayFrame(frame))
                 frames_counter += 1
-                # Exit if Space pressed
-                k = cv2.waitKey(10)
-                if k == 32 : break
+                if not WRITE_TMP_RESULT:
+                    # Exit if Space pressed
+                    k = cv2.waitKey(10)
+                    if k == 32 : break
                 continue
             
             # Draw bbox
@@ -120,9 +121,10 @@ if __name__ == '__main__' :
         video_writer.append_data(displayFrame(frame))
         frames_counter += 1
 
-        # Exit if Space pressed
-        k = cv2.waitKey(10)
-        if k == 32 : break
+        if not WRITE_TMP_RESULT:
+            # Exit if Space pressed
+            k = cv2.waitKey(10)
+            if k == 32 : break
 
 print "Finishing... Total image %d" % frames_counter
 print "Save image to {}".format(image_name)
