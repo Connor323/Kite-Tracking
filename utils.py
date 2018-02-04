@@ -92,7 +92,10 @@ def process_bs(image, downsample_rate=2, low_area=50, up_area=1000, return_centr
     
     if DEBUG_MODE:
         tmp_show = cv2.resize(fgmask, VIZ_SIZE, cv2.INTER_NEAREST)
-        # cv2.imshow("BS Original", tmp_show)
+        if WRITE_TMP_RESULT:
+            cv2.imwrite("BS_Original.png", tmp_show)
+        else:
+            cv2.imshow("BS Original", tmp_show)
 
     # fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, fgbg_kernel_open) # remove small items 
     fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, fgbg_kernel_close) # fill holes
@@ -109,7 +112,10 @@ def process_bs(image, downsample_rate=2, low_area=50, up_area=1000, return_centr
 
     if DEBUG_MODE:
         tmp_show = cv2.resize(tmp, VIZ_SIZE, cv2.INTER_NEAREST)
-        # cv2.imshow("BS Post", tmp_show)
+        if WRITE_TMP_RESULT:
+            cv2.imwrite("BS_Post.png", tmp_show)
+        else:
+            cv2.imshow("BS Post", tmp_show)
     
     if not return_centroids:
         return final_labels
@@ -229,7 +235,10 @@ def creat_tracker(tracker_type):
 
 def displayFrame(frame):
     frame_resize = cv2.resize(frame, VIZ_SIZE)
-    # cv2.imshow("Tracking", frame_resize)
+    if WRITE_TMP_RESULT:
+        cv2.imwrite("Tracking.png", frame_resize)
+    else:
+        cv2.imshow("Tracking", frame_resize)
     frame_resize = cv2.resize(frame, RECORD_SIZE)
     frame_resize = swapChannels(frame_resize)
     return frame_resize

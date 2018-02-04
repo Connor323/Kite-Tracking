@@ -67,5 +67,11 @@ RECORD_SIZE = (512, 512) # Record image size
 VIZ_SIZE = (400, 400) # Visulattion image size
 RECORD_FPS = 100 # frame per second
 
+WRITE_TMP_RESULT = False # if writing the result images rather than showing 
+if not WRITE_TMP_RESULT:
+	cv2.namedWindow("Tracking", cv2.WINDOW_NORMAL)
+	cv2.namedWindow("BS Original", cv2.WINDOW_NORMAL)
+	cv2.namedWindow("BS Post", cv2.WINDOW_NORMAL)
+	cv2.namedWindow("Localization", cv2.WINDOW_NORMAL)
 DEBUG_MODE = True # if True, will show the BS result and localization result
 ###########################################################################

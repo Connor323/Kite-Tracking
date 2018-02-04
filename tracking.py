@@ -96,8 +96,8 @@ if __name__ == '__main__' :
                 video_writer.append_data(displayFrame(frame))
                 frames_counter += 1
                 # Exit if Space pressed
-                # k = cv2.waitKey(10)
-                # if k == 32 : break
+                k = cv2.waitKey(10)
+                if k == 32 : break
                 continue
             
             # Draw bbox
@@ -121,8 +121,8 @@ if __name__ == '__main__' :
         frames_counter += 1
 
         # Exit if Space pressed
-        # k = cv2.waitKey(10)
-        # if k == 32 : break
+        k = cv2.waitKey(10)
+        if k == 32 : break
 
 print "Finishing... Total image %d" % frames_counter
 print "Save image to {}".format(image_name)
