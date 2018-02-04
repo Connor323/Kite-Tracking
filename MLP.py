@@ -139,7 +139,7 @@ def MLP_Detection_MP(image, init_detection=False):
         clone_resize = cv2.resize(clone, VIZ_SIZE)
         if init_detection:
             clone_resize = swapChannels(clone_resize)
-        cv2.imshow("Localization", clone_resize)
+        # cv2.imshow("Localization", clone_resize)
 
     if score >= PROB_CRITERIA:
         return tuple(final_select)
