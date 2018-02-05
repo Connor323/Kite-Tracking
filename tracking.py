@@ -29,6 +29,9 @@ if __name__ == '__main__' :
     video_writer = imageio.get_writer(image_name, fps=RECORD_FPS)
     frames_counter = 0
 
+    # Create handler when press Ctrl + C
+    signal.signal(signal.SIGINT, signal_handler)
+
     # Exit if video not opened.
     if not video.isOpened():
         print "Could not open video"
@@ -59,6 +62,7 @@ if __name__ == '__main__' :
         read_ok, frame = video.read()
         if not read_ok:
             break
+        frame_original = frame.copy() # make a copy for result saving
          
         # Start timer
         timer = cv2.getTickCount()
@@ -88,12 +92,13 @@ if __name__ == '__main__' :
             frame = drawBox(frame, bbox)
         else :
             # Tracking failure
-            print "   %s Failed! Use classifier!" % tracker_type
+            if DEBUG_MODE:
+                print "   %s Failed! Use classifier!" % tracker_type
             bbox = MLP_Detection_MP(frame, init_detection=False)
             if bbox is None:
-                print "   Tracking Failed! Skip current frame..."
+                print "   !!! -> Tracking Failed! Skip current frame..."
                 cv2.putText(frame, "Tracking Failed! Skip current frame...", (100,150), cv2.FONT_HERSHEY_SIMPLEX, 2.0,(0,0,255),5)
-                video_writer.append_data(displayFrame(frame))
+                video_writer.append_data(displayFrame(frame, frame_original, bbox, video))
                 frames_counter += 1
                 if not WRITE_TMP_RESULT:
                     # Exit if Space pressed
@@ -118,7 +123,7 @@ if __name__ == '__main__' :
         cv2.putText(frame, "FPS : " + str(int(fps)), (100,200), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (50,170,50), 5);
  
         # Display result
-        video_writer.append_data(displayFrame(frame))
+        video_writer.append_data(displayFrame(frame, frame_original, bbox, video))
         frames_counter += 1
 
         if not WRITE_TMP_RESULT:
@@ -129,3 +134,4 @@ if __name__ == '__main__' :
 print "Finishing... Total image %d" % frames_counter
 print "Save image to {}".format(image_name)
 video_writer.close()
+

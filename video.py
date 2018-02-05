@@ -1,4 +1,5 @@
 import cv2
+import os
 import numpy as np
 
 # NOTE: Format 0: 2018-1-18-12-49-0-204-original.bmp
@@ -15,7 +16,7 @@ class Video:
         """
         assert files is not None
 
-        self.counter = 0
+        self.counter = -1
         self.file_format = file_format
         self.files = self.sort(files)
         self.start_idx = 0
@@ -70,6 +71,13 @@ class Video:
         Get the total numbe of file (the number counts from the start frame).
         """
         return len(self.files)
+
+    def getFrameName(self):
+        """
+        Get the current image file name
+        """
+        file = self.files[self.counter]
+        return os.path.basename(file)
 
     def getFrameIdx(self):
         """

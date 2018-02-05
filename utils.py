@@ -4,6 +4,7 @@ import os
 import imageio
 import glob
 import numpy as np
+import signal
 from skimage.feature import hog
 
 import kcftracker
@@ -12,6 +13,16 @@ from config import *
 
 # Version check
 (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
+
+def signal_handler(signal, frame):
+    """
+    handle the case when hit Ctrl+C
+    """
+    print('   -> Stop the program! ')
+    if not DEBUG_MODE:
+        print "Bounding box saves to {}".format(TARGET_BOX)
+        BBOX_FILE.close()
+    sys.exit(0)
 
 def pushBuffer(res):
     """
@@ -182,6 +193,9 @@ def cropImageFromBS(image, bbox):
     Params: 
         image: current frame
         bbox: bounding box
+    Return:
+        patch of image
+        if succeed
     """
     image, centroids = process_bs(image, low_area=MIN_AREA, up_area=MAX_AREA, return_centroids=True)
     if len(centroids) > 0:
@@ -198,6 +212,8 @@ def cropImageAndAnalysis(clf, image, bbox):
     Params: 
         image: current frame
         bbox: bounding box
+    return:
+        if the current tracking is successful (boolean)
     """
     assert clf is not None, "No classifier loaded!"
 
@@ -209,12 +225,28 @@ def cropImageAndAnalysis(clf, image, bbox):
     return False
 
 def drawBox(image, bbox):
+    """
+    Draw bounding box.
+
+    Params:
+        bbox: [x_top_left, y_top_left, width, height]
+    Return:
+        image
+    """
     p1 = (int(bbox[0]), int(bbox[1]))
     p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
     cv2.rectangle(image, p1, p2, (0, 255, 0), 2, 2)
     return image
 
 def creat_tracker(tracker_type):
+    """
+    Create video tracker.
+    
+    Params:
+        tracker_type: string of tracker name
+    Return:
+        tracker object
+    """
     if int(minor_ver) < 3:
         tracker = cv2.Tracker_create(tracker_type)
     else:
@@ -224,7 +256,7 @@ def creat_tracker(tracker_type):
             tracker = cv2.TrackerMIL_create()
         if tracker_type == 'KCF':
             # tracker = cv2.TrackerKCF_create() # OpenCV KCF is not good
-            tracker = kcftracker.KCFTracker(False, True, True)  # hog, fixed_window, multiscale
+            tracker = kcftracker.KCFTracker(False, True, False)  # hog, fixed_window, multiscale
         if tracker_type == 'TLD':
             tracker = cv2.TrackerTLD_create()
         if tracker_type == 'MEDIANFLOW':
@@ -233,12 +265,44 @@ def creat_tracker(tracker_type):
             tracker = cv2.TrackerGOTURN_create()
     return tracker
 
-def displayFrame(frame):
-    frame_resize = cv2.resize(frame, VIZ_SIZE)
-    if WRITE_TMP_RESULT:
-        cv2.imwrite("Tracking.png", frame_resize)
-    else:
-        cv2.imshow("Tracking", frame_resize)
+def displayFrame(frame, frame_original, bbox, video):
+    """
+    Display/write the current tracking result or write the image patch and bbox
+
+    Params:
+        frame: current frame (with painting)
+        frame_original: current frame (without painting)
+        bbox: bounding box
+        video: video reader object
+    Return:
+        Recording image
+    """
+    frame_resize_viz = cv2.resize(frame, VIZ_SIZE)
     frame_resize = cv2.resize(frame, RECORD_SIZE)
     frame_resize = swapChannels(frame_resize)
+
+    if WRITE_TMP_RESULT:
+        if DEBUG_MODE:
+            cv2.imwrite("Tracking.png", frame_resize_viz)
+        else:
+            if bbox is None: return frame_resize
+
+            msg = "%s:%d %d %d %d\n" % (video.getFrameName(), bbox[0], bbox[1], bbox[2], bbox[3])
+            BBOX_FILE.write(msg)
+
+            patch = cropImage(frame_original, bbox)
+            if patch is not None:
+                cv2.imwrite(video.getFrameName(), patch)
+    else:
+        if DEBUG_MODE:
+            cv2.imshow("Tracking", frame_resize_viz)
+        else:
+            if bbox is None: return frame_resize
+
+            msg = "%s:%d %d %d %d\n" % (video.getFrameName(), bbox[0], bbox[1], bbox[2], bbox[3])
+            BBOX_FILE.write(msg)
+
+            patch = cropImage(frame_original, bbox)
+            if patch is not None:
+                cv2.imwrite(os.path.join(TARGET_PATCH, video.getFrameName()), patch)
     return frame_resize

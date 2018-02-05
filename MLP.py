@@ -106,7 +106,8 @@ def MLP_Detection_MP(image, init_detection=False):
         for t in threads:
             if t.isAlive():
                 still_alive = True
-    print "Total time: %.5fs" % (time.time() - tic)
+    if DEBUG_MODE:
+        print "Total time: %.5fs" % (time.time() - tic)
 
     # Get final result
     detections = []
@@ -119,7 +120,8 @@ def MLP_Detection_MP(image, init_detection=False):
             if score < detection[4]:
                 score = detection[4]
                 final_select = detection[:4]
-    print "Final score: %f, total number of detections: %d" % (score, len(detections))
+    if DEBUG_MODE:
+        print "Final score: %f, total number of detections: %d" % (score, len(detections))
     # If visualize is set to true, display the working
     # of the sliding window 
     if DEBUG_MODE: 

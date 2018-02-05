@@ -2,6 +2,7 @@ import os
 import pickle
 import numpy as np
 import cv2
+from subprocess import call
 from sklearn.externals import joblib
 
 ############################# Tracker Setting #############################
@@ -67,11 +68,22 @@ RECORD_SIZE = (512, 512) # Record image size
 VIZ_SIZE = (400, 400) # Visulattion image size
 RECORD_FPS = 100 # frame per second
 
-WRITE_TMP_RESULT = False # if writing the result images rather than showing 
-if not WRITE_TMP_RESULT:
+WRITE_TMP_RESULT = False # if True, will write the result images rather than showing in windows
+DEBUG_MODE = False # if True, will show the BS result and localization result;
+				   # if False, will save the target patches and bounding box
+
+if not WRITE_TMP_RESULT and DEBUG_MODE:
 	cv2.namedWindow("Tracking", cv2.WINDOW_NORMAL)
 	cv2.namedWindow("BS Original", cv2.WINDOW_NORMAL)
 	cv2.namedWindow("BS Post", cv2.WINDOW_NORMAL)
 	cv2.namedWindow("Localization", cv2.WINDOW_NORMAL)
-DEBUG_MODE = True # if True, will show the BS result and localization result
+
+# setting the result path
+if not DEBUG_MODE:
+	RESULT_BASE = "result"
+	TARGET_PATCH = os.path.join(RESULT_BASE, "patches")
+	TARGET_BOX = os.path.join(RESULT_BASE, "boxes")
+	call(["mkdir", "-p", TARGET_PATCH])
+	call(["mkdir", "-p", TARGET_BOX])
+	BBOX_FILE = open(os.path.join(TARGET_BOX, "bboxes.txt"), "w")
 ###########################################################################
