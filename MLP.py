@@ -120,6 +120,7 @@ def MLP_Detection_MP(image, init_detection=False):
             if score < detection[4]:
                 score = detection[4]
                 final_select = detection[:4]
+    bs_patch = cropImage(bs_image, final_select[:4])
     if DEBUG_MODE:
         print "Final score: %f, total number of detections: %d" % (score, len(detections))
     # If visualize is set to true, display the working
@@ -147,6 +148,6 @@ def MLP_Detection_MP(image, init_detection=False):
             cv2.imshow("Localization", clone_resize)
 
     if score >= PROB_CRITERIA:
-        return tuple(final_select)
+        return tuple(final_select), bs_patch
     else:
-        return None
+        return None, None

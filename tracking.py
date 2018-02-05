@@ -7,12 +7,16 @@ import numpy as np
 
 from MLP import MLP_Detection_MP
 from video import Video
+from matched_filters import MatchedFilter
 from utils import * 
 from config import *
 
 if __name__ == '__main__' :
     # Set up tracker.
     tracker = creat_tracker(tracker_type)
+
+    # Set up Matched Filter
+    MF = MatchedFilter(KERNEL_PATH)
  
     # Read video
     files = glob.glob(IMAGE_PATH)
@@ -45,7 +49,7 @@ if __name__ == '__main__' :
  
     # Use MLP find init_bbox if init_bbox is none
     if init_bbox is None:
-        init_bbox = MLP_Detection_MP(frame, init_detection=True)
+        init_bbox, bs_patch = MLP_Detection_MP(frame, init_detection=True)
         # Stop if both methods failed
         if init_bbox is None:
             raise ValueError("Initial Tracking Failed!!!")
@@ -78,7 +82,7 @@ if __name__ == '__main__' :
 
         if ok:
             # Crop patch and analysis using histogram
-            ok = cropImageAndAnalysis(clf, frame, bbox)
+            ok, bs_patch = cropImageAndAnalysis(clf, frame, bbox)
 
         # Use decision buffer to make final decision.
         ok = pushBuffer(ok)
@@ -94,7 +98,7 @@ if __name__ == '__main__' :
             # Tracking failure
             if DEBUG_MODE:
                 print "   %s Failed! Use classifier!" % tracker_type
-            bbox = MLP_Detection_MP(frame, init_detection=False)
+            bbox, bs_patch = MLP_Detection_MP(frame, init_detection=False)
             if bbox is None:
                 print "   !!! -> Tracking Failed! Skip current frame..."
                 cv2.putText(frame, "Tracking Failed! Skip current frame...", (100,150), cv2.FONT_HERSHEY_SIMPLEX, 2.0,(0,0,255),5)
@@ -113,6 +117,12 @@ if __name__ == '__main__' :
             tracker = creat_tracker(tracker_type)
             tracker.init(frame, bbox) 
  
+        # Apply matched filter to compute the angle of target
+        if bs_patch is not None:
+            kernel_angle = MF.applyFilters(frame_original, bbox)
+            angle = MF.getTargetAngle(kernel_angle, bs_patch)
+            drawAnlge(frame, angle, bbox)
+
         # Calculate Frames per second (FPS)
         fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer);
 
@@ -128,7 +138,8 @@ if __name__ == '__main__' :
 
         if not WRITE_TMP_RESULT:
             # Exit if Space pressed
-            k = cv2.waitKey(10)
+            k = cv2.waitKey()
+            # k = cv2.waitKey(10)
             if k == 32 : break
 
 print "Finishing... Total image %d" % frames_counter

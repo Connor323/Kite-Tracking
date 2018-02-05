@@ -12,10 +12,11 @@ tracker_type = tracker_types[2]
 
 ############################# Data Setting #############################
 # image and template path
-# IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
-IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
+IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
+# IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
 # IMAGE_PATH = "../images/cloudy0/*.bmp"
 TEMPLATE_PATH = "templates/kite0/*.png"
+KERNEL_PATH = "kernels/kernel_0.bmp"
 
 START_FRAME = None # the path to the start frame name, in case we want to start in the middle of video
 				   # Set None if we want to stat from beginning. 
@@ -69,7 +70,7 @@ VIZ_SIZE = (400, 400) # Visulattion image size
 RECORD_FPS = 100 # frame per second
 
 WRITE_TMP_RESULT = False # if True, will write the result images rather than showing in windows
-DEBUG_MODE = False # if True, will show the BS result and localization result;
+DEBUG_MODE = True # if True, will show the BS result and localization result;
 				   # if False, will save the target patches and bounding box
 
 if not WRITE_TMP_RESULT and DEBUG_MODE:

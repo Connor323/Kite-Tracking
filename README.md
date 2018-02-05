@@ -9,6 +9,7 @@ cv2
 imageio
 numba
 sklearn
+imutils
 ```
 
 ## Usage

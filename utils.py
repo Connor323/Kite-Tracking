@@ -18,7 +18,7 @@ def signal_handler(signal, frame):
     """
     handle the case when hit Ctrl+C
     """
-    print('   -> Stop the program! ')
+    print('   -> Stop the program by Ctrl+C! ')
     if not DEBUG_MODE:
         print "Bounding box saves to {}".format(TARGET_BOX)
         BBOX_FILE.close()
@@ -214,15 +214,16 @@ def cropImageAndAnalysis(clf, image, bbox):
         bbox: bounding box
     return:
         if the current tracking is successful (boolean)
+        image patch from BS result
     """
     assert clf is not None, "No classifier loaded!"
 
     patch, ret = cropImageFromBS(image, bbox)
     if patch is None or ret: # crop image size is incorrect (near the edge)
-        return False
+        return False, patch
     if np.sum(patch != 0) > TRACKING_CRITERIA_AREA:
-        return True
-    return False
+        return True, patch
+    return False, patch
 
 def drawBox(image, bbox):
     """
@@ -306,3 +307,26 @@ def displayFrame(frame, frame_original, bbox, video):
             if patch is not None:
                 cv2.imwrite(os.path.join(TARGET_PATCH, video.getFrameName()), patch)
     return frame_resize
+
+def drawAnlge(frame, angle, bbox, length=25):
+    """
+    Draw angle axis.
+
+    Params:
+        frame: current image
+        angle: float value
+        bbox: bounding box
+        length: length of axis
+    Return:
+        Painted image
+    """
+    bbox = np.array(bbox).astype(int)
+    center = tuple(bbox[:2] + bbox[2:] / 2)
+
+    radian = angle / 180 * np.pi
+    vertice = (int(center[0] + np.sin(radian)*length), int(center[1] - np.cos(radian)*length))
+    cv2.line(frame, center, vertice, (255, 255, 255), 5)
+    return frame
+
+
+
