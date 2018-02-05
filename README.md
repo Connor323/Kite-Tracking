@@ -39,4 +39,4 @@ For the setting details, please read the comments in config.py.
  - [x] Test with more data. 
  - [x] Speed up localization process.
  - [x] Improve the accuracy of MLP classifier. 
- - [ ] Improve the performance (bbox is not in the middel) 
+ - [x] Improve the performance (bbox is not in the middel) 
