@@ -12,11 +12,11 @@ tracker_type = tracker_types[2]
 
 ############################# Data Setting #############################
 # image and template path
-IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
-# IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
+# IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
+IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
 # IMAGE_PATH = "../images/cloudy0/*.bmp"
 TEMPLATE_PATH = "templates/kite0/*.png"
-KERNEL_PATH = "kernels/kernel_0.bmp"
+KERNEL_PATH = "kernels/kernel_1.bmp"
 
 START_FRAME = None # the path to the start frame name, in case we want to start in the middle of video
 				   # Set None if we want to stat from beginning. 
@@ -58,6 +58,11 @@ DECISION_BUFFER = [] # Decision buffer
 BUFFER_MODE = False
 ###########################################################################
 
+######################### Matched Filter Setting ##########################
+NUM_SCALING = 5
+SCALING_RATIO = 1.1
+###########################################################################
+
 ############################# BBOX Setting ################################
 init_bbox = None # Use None, if no initial bbox; bbox format: [x_top_left, y_top_left, w, h]
 BBOX_SIZE = [51, 51] # If init_bbox is none, we use the size of defalt bbox for following tracking
@@ -65,19 +70,19 @@ STEP_SIZE = [51, 51] # the moving step for the initial bbox detection scanning
 ###########################################################################
 
 ######################### Record and Debug Setting #########################
-RECORD_SIZE = (512, 512) # Record image size
-VIZ_SIZE = (400, 400) # Visulattion image size
-RECORD_FPS = 100 # frame per second
+TRACKING_RECORD, KERNEL_RECORD, MLP_RECORD, BS_ORIGIN_RECORD, BS_POST_RECORD =\
+                    								 [None], [None], [None], [None], [None]
+RECORD_SIZE = (900, 900) # Record image size (Don't change)
+VIZ_SIZE = (900, 900) # Visulattion image size (Don't change)
+RECORD_FPS = 60 # frame per second
 
 WRITE_TMP_RESULT = False # if True, will write the result images rather than showing in windows
+						 # if False, will showing the image in windows
 DEBUG_MODE = True # if True, will show the BS result and localization result;
 				   # if False, will save the target patches and bounding box
 
-if not WRITE_TMP_RESULT and DEBUG_MODE:
+if not WRITE_TMP_RESULT:
 	cv2.namedWindow("Tracking", cv2.WINDOW_NORMAL)
-	cv2.namedWindow("BS Original", cv2.WINDOW_NORMAL)
-	cv2.namedWindow("BS Post", cv2.WINDOW_NORMAL)
-	cv2.namedWindow("Localization", cv2.WINDOW_NORMAL)
 
 # setting the result path
 if not DEBUG_MODE:

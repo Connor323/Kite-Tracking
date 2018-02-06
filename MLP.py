@@ -120,9 +120,12 @@ def MLP_Detection_MP(image, init_detection=False):
             if score < detection[4]:
                 score = detection[4]
                 final_select = detection[:4]
-    bs_patch = cropImage(bs_image, final_select[:4])
+    bs_patch = None
+    if final_select is not None:
+        bs_patch = cropImage(bs_image, final_select[:4])
     if DEBUG_MODE:
         print "Final score: %f, total number of detections: %d" % (score, len(detections))
+
     # If visualize is set to true, display the working
     # of the sliding window 
     if DEBUG_MODE: 
@@ -142,10 +145,7 @@ def MLP_Detection_MP(image, init_detection=False):
         clone_resize = cv2.resize(clone, VIZ_SIZE)
         if init_detection:
             clone_resize = swapChannels(clone_resize)
-        if WRITE_TMP_RESULT:
-            cv2.imwrite("Localization.png", clone_resize)
-        else:
-            cv2.imshow("Localization", clone_resize)
+        MLP_RECORD[0] = clone_resize
 
     if score >= PROB_CRITERIA:
         return tuple(final_select), bs_patch

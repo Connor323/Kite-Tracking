@@ -103,10 +103,7 @@ def process_bs(image, downsample_rate=2, low_area=50, up_area=1000, return_centr
     
     if DEBUG_MODE:
         tmp_show = cv2.resize(fgmask, VIZ_SIZE, cv2.INTER_NEAREST)
-        if WRITE_TMP_RESULT:
-            cv2.imwrite("BS_Original.png", tmp_show)
-        else:
-            cv2.imshow("BS Original", tmp_show)
+        BS_ORIGIN_RECORD[0] = cv2.cvtColor(tmp_show, cv2.COLOR_GRAY2RGB)
 
     # fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, fgbg_kernel_open) # remove small items 
     fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, fgbg_kernel_close) # fill holes
@@ -123,10 +120,7 @@ def process_bs(image, downsample_rate=2, low_area=50, up_area=1000, return_centr
 
     if DEBUG_MODE:
         tmp_show = cv2.resize(tmp, VIZ_SIZE, cv2.INTER_NEAREST)
-        if WRITE_TMP_RESULT:
-            cv2.imwrite("BS_Post.png", tmp_show)
-        else:
-            cv2.imshow("BS Post", tmp_show)
+        BS_POST_RECORD[0] = cv2.cvtColor(tmp_show, cv2.COLOR_GRAY2RGB)
     
     if not return_centroids:
         return final_labels
@@ -173,6 +167,9 @@ def cropImage(image, bbox):
     Return:
         patch
     """
+    if image is None:
+        return None
+
     h, w = image.shape[:2]
 
     crop_x_min = int(max(0, bbox[0]))
@@ -266,46 +263,90 @@ def creat_tracker(tracker_type):
             tracker = cv2.TrackerGOTURN_create()
     return tracker
 
-def displayFrame(frame, frame_original, bbox, video):
+def getResultFrame():
+    """
+    Stiching all the results into one image, including:
+        - tracking result;
+        - localization result;
+        - matched filter result;
+        - BS-original result;
+        - BS-post result.
+
+    Return:
+        Stiching image
+    """
+    # Resize images
+    frame_show = np.ones(list(VIZ_SIZE)+[3], np.uint8) * 255
+
+    if type(TRACKING_RECORD[0]) == type(None) or \
+       type(MLP_RECORD[0]) == type(None) or \
+       type(BS_ORIGIN_RECORD[0]) == type(None) or \
+       type(BS_POST_RECORD[0]) == type(None) or \
+       type(KERNEL_RECORD[0]) == type(None):
+        return frame_show
+    tracking = cv2.resize(TRACKING_RECORD[0], (600, 600))
+    localization = cv2.resize(MLP_RECORD[0], (300, 300))
+    bs_original = cv2.resize(BS_ORIGIN_RECORD[0], (300, 300))
+    bs_post = cv2.resize(BS_POST_RECORD[0], (300, 300))
+    h, w = KERNEL_RECORD[0].shape[:2]
+    matched_filter = cv2.resize(KERNEL_RECORD[0], (4 * w, 4 * h))
+
+    # Stiching images
+    frame_show[150-2*h:150+2*h, 300-2*w:300+2*w] = matched_filter
+    frame_show[-600:, :600] = tracking
+    frame_show[:300, -300:] = bs_original
+    frame_show[300:600, -300:] = bs_post
+    frame_show[600:, -300:] = localization
+
+    # Write labels
+    cv2.putText(frame_show, "Selected Kernel", (140,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255,0), 1)
+    cv2.putText(frame_show, "BS Original", (700,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255,0), 1)
+    cv2.putText(frame_show, "BS Post", (700,320), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255,0), 1)
+    cv2.putText(frame_show, "Localization", (700,620), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255,0), 1)
+
+    return frame_show
+
+def displayFrame(frame, frame_original, bbox, angle, video):
     """
     Display/write the current tracking result or write the image patch and bbox
 
     Params:
         frame: current frame (with painting)
         frame_original: current frame (without painting)
-        bbox: bounding box
+        bbox: bounding box (could be None)
+        angle: float (could be None)
         video: video reader object
     Return:
         Recording image
     """
-    frame_resize_viz = cv2.resize(frame, VIZ_SIZE)
-    frame_resize = cv2.resize(frame, RECORD_SIZE)
-    frame_resize = swapChannels(frame_resize)
+    if not DEBUG_MODE:
+        frame_resize = cv2.resize(frame, RECORD_SIZE)
+        if bbox is None or angle is None: return frame_resize
 
-    if WRITE_TMP_RESULT:
-        if DEBUG_MODE:
-            cv2.imwrite("Tracking.png", frame_resize_viz)
+        if WRITE_TMP_RESULT:
+            cv2.imwrite("Tracking.png", frame_resize)
         else:
-            if bbox is None: return frame_resize
+            cv2.imshow("Tracking", frame_resize)
 
-            msg = "%s:%d %d %d %d\n" % (video.getFrameName(), bbox[0], bbox[1], bbox[2], bbox[3])
-            BBOX_FILE.write(msg)
+        msg = "%s:%d %d %d %d %f\n" % (video.getFrameName(), bbox[0], bbox[1], bbox[2], bbox[3], angle)
+        BBOX_FILE.write(msg)
 
-            patch = cropImage(frame_original, bbox)
-            if patch is not None:
-                cv2.imwrite(video.getFrameName(), patch)
+        patch = cropImage(frame_original, bbox)
+        if patch is not None:
+            cv2.imwrite(os.path.join(TARGET_PATCH, video.getFrameName()), patch)
     else:
-        if DEBUG_MODE:
-            cv2.imshow("Tracking", frame_resize_viz)
+        frame_show = cv2.resize(frame, VIZ_SIZE)
+        TRACKING_RECORD[0] = frame_show
+        frame_show = getResultFrame()
+
+        if WRITE_TMP_RESULT:
+            cv2.imwrite("Tracking.png", frame_show)
         else:
-            if bbox is None: return frame_resize
+            cv2.imshow("Tracking", frame_show)
 
-            msg = "%s:%d %d %d %d\n" % (video.getFrameName(), bbox[0], bbox[1], bbox[2], bbox[3])
-            BBOX_FILE.write(msg)
+        frame_resize = cv2.resize(frame_show, RECORD_SIZE)
+        frame_resize = swapChannels(frame_resize)
 
-            patch = cropImage(frame_original, bbox)
-            if patch is not None:
-                cv2.imwrite(os.path.join(TARGET_PATCH, video.getFrameName()), patch)
     return frame_resize
 
 def drawAnlge(frame, angle, bbox, length=25):
@@ -324,7 +365,7 @@ def drawAnlge(frame, angle, bbox, length=25):
     center = tuple(bbox[:2] + bbox[2:] / 2)
 
     radian = angle / 180 * np.pi
-    vertice = (int(center[0] + np.sin(radian)*length), int(center[1] - np.cos(radian)*length))
+    vertice = (int(center[0] + np.cos(radian)*length), int(center[1] + np.sin(radian)*length))
     cv2.line(frame, center, vertice, (255, 255, 255), 5)
     return frame
 
