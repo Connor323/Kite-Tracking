@@ -282,24 +282,30 @@ def getResultFrame():
        type(MLP_RECORD[0]) == type(None) or \
        type(BS_ORIGIN_RECORD[0]) == type(None) or \
        type(BS_POST_RECORD[0]) == type(None) or \
-       type(KERNEL_RECORD[0]) == type(None):
+       type(KERNEL_RECORD[0]) == type(None) or \
+       type(PATCH_RECORD[0]) == type(None):
         return frame_show
+
     tracking = cv2.resize(TRACKING_RECORD[0], (600, 600))
     localization = cv2.resize(MLP_RECORD[0], (300, 300))
     bs_original = cv2.resize(BS_ORIGIN_RECORD[0], (300, 300))
     bs_post = cv2.resize(BS_POST_RECORD[0], (300, 300))
-    h, w = KERNEL_RECORD[0].shape[:2]
-    matched_filter = cv2.resize(KERNEL_RECORD[0], (4 * w, 4 * h))
+    h1, w1 = KERNEL_RECORD[0].shape[:2]
+    matched_filter = cv2.resize(KERNEL_RECORD[0], (4 * w1, 4 * h1))
+    h2, w2 = PATCH_RECORD[0].shape[:2]
+    matched_filter_patch = cv2.resize(PATCH_RECORD[0], (4 * w2, 4 * h2))
 
     # Stiching images
-    frame_show[150-2*h:150+2*h, 300-2*w:300+2*w] = matched_filter
+    frame_show[150-2*h1:150+2*h1, 150-2*w1:150+2*w1] = matched_filter
+    frame_show[150-2*h2:150+2*h2, 450-2*w2:450+2*w2] = matched_filter_patch
     frame_show[-600:, :600] = tracking
     frame_show[:300, -300:] = bs_original
     frame_show[300:600, -300:] = bs_post
     frame_show[600:, -300:] = localization
 
     # Write labels
-    cv2.putText(frame_show, "Selected Kernel", (140,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255,0), 1)
+    cv2.putText(frame_show, "Selected Kernel", (100,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255,0), 1)
+    cv2.putText(frame_show, "Current Patch", (400,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255,0), 1)
     cv2.putText(frame_show, "BS Original", (700,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255,0), 1)
     cv2.putText(frame_show, "BS Post", (700,320), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255,0), 1)
     cv2.putText(frame_show, "Localization", (700,620), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255,0), 1)
@@ -366,7 +372,7 @@ def drawAnlge(frame, angle, bbox, length=25):
 
     radian = angle / 180 * np.pi
     vertice = (int(center[0] + np.cos(radian)*length), int(center[1] + np.sin(radian)*length))
-    cv2.line(frame, center, vertice, (255, 255, 255), 5)
+    cv2.line(frame, center, vertice, (0, 0, 255), 5)
     return frame
 
 

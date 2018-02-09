@@ -16,9 +16,10 @@ tracker_type = tracker_types[2]
 IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
 # IMAGE_PATH = "../images/cloudy0/*.bmp"
 TEMPLATE_PATH = "templates/kite0/*.png"
+# KERNEL_PATH = "kernels/kernel_0.bmp"
 KERNEL_PATH = "kernels/kernel_1.bmp"
 
-START_FRAME = None # the path to the start frame name, in case we want to start in the middle of video
+START_FRAME = None #"/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-original.bmp" # the path to the start frame name, in case we want to start in the middle of video
 				   # Set None if we want to stat from beginning. 
 # File format
 # NOTE: Format 0: 2018-1-18-12-49-0-204-original.bmp
@@ -48,19 +49,24 @@ MAX_AREA = 600 # maximum area inside bbox for BS
     
 ############################# Tracking Setting ############################
 PROB_CRITERIA = 0.70 # The prob_thresh value for MLP_2
-NUM_THREADS = 16 # Multi-thread boost setting 
+NUM_THREADS = 8 # Multi-thread boost setting 
 
 TRACKING_CRITERIA_AREA = 25 # minimum area inside bbox for tracking
 RECENTER_THRESH = 10 # Max distance allowed from the centroid to the center of bbox
 
 DECISION_BUFFER_SIZE = 3 # Decision buffer size
 DECISION_BUFFER = [] # Decision buffer
-BUFFER_MODE = False
+BUFFER_MODE = False # If True, use the descidion buffer for tracking
 ###########################################################################
 
 ######################### Matched Filter Setting ##########################
-NUM_SCALING = 5
-SCALING_RATIO = 1.1
+NUM_ROTATION = 16 # Number of rotation for creating filter bank
+USE_UPDATE_BUFFER = False # If True, use the buffer for angle detection (not recommended)
+KERNAL_UPDATE_FREQ = 5 # The number of step in the buffer (total kernels = KERNAL_UPDATE_FREQ * NUM_ROTATION)
+THRESH_ANGLE_FLIP = 100 # If the difference of angle in degree is over this value, we flip or triger the mode
+template_matching_methods = ['cv2.TM_CCOEFF', 'cv2.TM_CCOEFF_NORMED', 'cv2.TM_CCORR',
+                             'cv2.TM_CCORR_NORMED', 'cv2.TM_SQDIFF', 'cv2.TM_SQDIFF_NORMED'] # TM method (depricated)
+TEMPLATE_MATCHING_MATHOD = eval(template_matching_methods[2]) # TM method (depricated)
 ###########################################################################
 
 ############################# BBOX Setting ################################
@@ -70,11 +76,11 @@ STEP_SIZE = [51, 51] # the moving step for the initial bbox detection scanning
 ###########################################################################
 
 ######################### Record and Debug Setting #########################
-TRACKING_RECORD, KERNEL_RECORD, MLP_RECORD, BS_ORIGIN_RECORD, BS_POST_RECORD =\
-                    								 [None], [None], [None], [None], [None]
-RECORD_SIZE = (900, 900) # Record image size (Don't change)
+TRACKING_RECORD, KERNEL_RECORD, PATCH_RECORD, MLP_RECORD, BS_ORIGIN_RECORD, BS_POST_RECORD =\
+                    								 [None], [None], [None], [None], [None], [None]
+RECORD_SIZE = (912, 912) # Record image size (Don't change)
 VIZ_SIZE = (900, 900) # Visulattion image size (Don't change)
-RECORD_FPS = 60 # frame per second
+RECORD_FPS = 15 # frame per second
 
 WRITE_TMP_RESULT = False # if True, will write the result images rather than showing in windows
 						 # if False, will showing the image in windows
