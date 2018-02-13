@@ -63,6 +63,7 @@ if __name__ == '__main__' :
 
     # Draw initial bbox
     frame = drawBox(frame, init_bbox)
+    prev_angle = None
 
     while True:
         # Start timer
@@ -103,6 +104,7 @@ if __name__ == '__main__' :
             if bbox is None:
                 print "   !!! -> Tracking Failed! Skip current frame..."
                 cv2.putText(frame, "Tracking Failed! Skip current frame...", (100,150), cv2.FONT_HERSHEY_SIMPLEX, 2.0,(0,0,255),5)
+                prev_angle = None
                 if DEBUG_MODE:
                     video_writer.append_data(displayFrame(frame, frame_original, bbox, angle, video))
                 else:
@@ -123,13 +125,13 @@ if __name__ == '__main__' :
  
         # Apply matched filter to compute the angle of target
         if bs_patch is not None:
-            kernel_angle_idx = MF.applyFilters(frame_original.copy(), bs_patch.copy(), bbox)
+            kernel_angle_idx, loc = MF.applyFilters(frame_original.copy(), bs_patch.copy(), bbox)
             if kernel_angle_idx is not None:
-                angle = MF.getTargetAngle(kernel_angle_idx, bs_patch)
-                drawAnlge(frame, angle, bbox)
-                if USE_UPDATE_BUFFER:
-                    MF.updateKernel(frame_original.copy(), bs_patch.copy(), bbox, angle)
-                angle = int(angle)
+                angle = MF.getTargetAngle(kernel_angle_idx, bs_patch, frame_original.copy(), loc, bbox, prev_angle)
+                if angle is not None:
+                    drawAnlge(frame, angle, bbox)
+                    prev_angle = angle
+                    angle = int(angle)
 
         # Calculate Frames per second (FPS)
         fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer);

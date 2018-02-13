@@ -12,12 +12,12 @@ tracker_type = tracker_types[2]
 
 ############################# Data Setting #############################
 # image and template path
-# IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
-IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
+IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
+# IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
 # IMAGE_PATH = "../images/cloudy0/*.bmp"
 TEMPLATE_PATH = "templates/kite0/*.png"
-# KERNEL_PATH = "kernels/kernel_0.bmp"
-KERNEL_PATH = "kernels/kernel_1.bmp"
+KERNEL_PATH = "kernels/kernel_0.bmp"
+# KERNEL_PATH = "kernels/kernel_1.bmp"
 
 START_FRAME = None #"/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-original.bmp" # the path to the start frame name, in case we want to start in the middle of video
 				   # Set None if we want to stat from beginning. 
@@ -49,7 +49,7 @@ MAX_AREA = 600 # maximum area inside bbox for BS
     
 ############################# Tracking Setting ############################
 PROB_CRITERIA = 0.70 # The prob_thresh value for MLP_2
-NUM_THREADS = 8 # Multi-thread boost setting 
+NUM_THREADS_TRACKING = 8 # Multi-thread boost setting 
 
 TRACKING_CRITERIA_AREA = 25 # minimum area inside bbox for tracking
 RECENTER_THRESH = 10 # Max distance allowed from the centroid to the center of bbox
@@ -60,13 +60,9 @@ BUFFER_MODE = False # If True, use the descidion buffer for tracking
 ###########################################################################
 
 ######################### Matched Filter Setting ##########################
-NUM_ROTATION = 16 # Number of rotation for creating filter bank
-USE_UPDATE_BUFFER = False # If True, use the buffer for angle detection (not recommended)
-KERNAL_UPDATE_FREQ = 5 # The number of step in the buffer (total kernels = KERNAL_UPDATE_FREQ * NUM_ROTATION)
-THRESH_ANGLE_FLIP = 100 # If the difference of angle in degree is over this value, we flip or triger the mode
-template_matching_methods = ['cv2.TM_CCOEFF', 'cv2.TM_CCOEFF_NORMED', 'cv2.TM_CCORR',
-                             'cv2.TM_CCORR_NORMED', 'cv2.TM_SQDIFF', 'cv2.TM_SQDIFF_NORMED'] # TM method (depricated)
-TEMPLATE_MATCHING_MATHOD = eval(template_matching_methods[2]) # TM method (depricated)
+NUM_ROTATION = 8 # Number of rotation for creating filter bank
+THRESH_ANGLE_DISTANCE = 100 # The thresholding value for the difference of two angles in degree.
+NUM_THREADS_MFR = 8 # Number of treads for computing MFR
 ###########################################################################
 
 ############################# BBOX Setting ################################

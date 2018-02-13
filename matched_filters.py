@@ -45,15 +45,7 @@ class MatchedFilter:
             # perform the actual rotation and return the image
             return cv2.warpAffine(image, M, (nW, nH), borderMode=cv2.BORDER_CONSTANT, borderValue=0)
 
-        def bufferPop(kernels, angles):
-            if USE_UPDATE_BUFFER:
-                if len(kernels) > NUM_ROTATION * KERNAL_UPDATE_FREQ:
-                    kernels = kernels[NUM_ROTATION:]
-                if len(angles) > NUM_ROTATION * KERNAL_UPDATE_FREQ:
-                    angles = angles[NUM_ROTATION:]
-            return kernels, angles
-
-        K = self.kernel.copy().astype(np.float32)
+        K = self.kernel.copy()
         K = cv2.normalize(K, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         K -= np.mean(K)
         cur_rot = 0.
@@ -70,7 +62,7 @@ class MatchedFilter:
             angles.append(self.clip_angle(cur_rot + init_angle))
             cur_rot += rotate_interval
 
-        return bufferPop(kernels, angles)
+        return kernels, angles
 
     def clip_angle(self, angle):
         """
@@ -83,6 +75,42 @@ class MatchedFilter:
         """
         return angle % 360
 
+    def findTightBboxFromBS(self, bs_patch):
+        """
+        Find the tight bbox from the BS binary image
+
+        Params:
+            bs_patch: the binary image patch/image from BS result
+        Return:
+            tight bbox
+            tight rect
+        """
+        _, contours, hierarchy = cv2.findContours(bs_patch, 1, 2)
+        max_area = 0
+        select_cnt = None
+        for cnt in contours:
+            M = cv2.moments(cnt)
+            if M["m00"] > max_area:
+                select_cnt = cnt
+                max_area = M["m00"]
+        if select_cnt is None:
+            return None, None
+
+        rect = cv2.minAreaRect(select_cnt)
+        bbox = cv2.boxPoints(rect)
+        return bbox, rect
+
+    def angles_distance(self, angle1, angle2):
+        """
+        Compute the distance between two angles
+
+        Params:     
+            angle1, angle2
+        Return: 
+            angle distance in [0, 360)
+        """
+        return np.min([self.clip_angle(angle1 - angle2), self.clip_angle(angle2 - angle1)])
+
     def applyFilters(self, image, bs_patch, bbox):
         '''
         Given a filter bank, apply them and record maximum response
@@ -93,16 +121,21 @@ class MatchedFilter:
         Return:
             Selected kernel angle idx: int value
         '''
-        def work(patch, thread, MFR):
-            for i in range(thread, len(self.kernels), NUM_THREADS):
-                MFR[i] = np.max(cv2.filter2D(norm_patch, -1, self.kernels[i], borderType=cv2.BORDER_CONSTANT))
+        def work(patch, thread, MFR, LOC):
+            for i in range(thread, len(self.kernels), NUM_THREADS_MFR):
+                res = cv2.filter2D(norm_patch, -1, self.kernels[i], borderType=cv2.BORDER_CONSTANT)
+                res = np.mean(res, axis=2)
+                min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+                MFR[i] = max_val
+                LOC[i] = max_loc
 
         def MFR_MP(patch):
             # Assign jobs
             threads = []
             MFR = [[] for _ in range(len(self.kernels))]
-            for thread in range(NUM_THREADS):
-                t = threading.Thread(target=work, args=(patch, thread, MFR))
+            LOC = [[] for _ in range(len(self.kernels))]
+            for thread in range(NUM_THREADS_MFR):
+                t = threading.Thread(target=work, args=(patch, thread, MFR, LOC))
                 t.start()
                 threads.append(t)
 
@@ -114,53 +147,29 @@ class MatchedFilter:
                     if t.isAlive():
                         still_alive = True
 
-            return MFR
-
-        def getKernelIdx(max_per_MFR):
-            max_per_step, max_idx_per_step, selected_angle_per_step = [], [], []
-            for i in range(len(self.kernels) / NUM_ROTATION):
-                max_per_step.append(np.max(max_per_MFR[i * NUM_ROTATION : (i+1) * NUM_ROTATION]))
-                max_idx_per_step.append(NUM_ROTATION*i + np.argmax(max_per_MFR[i * NUM_ROTATION : (i+1) * NUM_ROTATION]))
-                selected_angle_per_step.append(int(self.angles[max_idx_per_step[-1]] / (360 / NUM_ROTATION)))
-            max_per_step = np.array(max_per_step)
-            max_idx_per_step = np.array(max_idx_per_step)
-            selected_angle_per_step = np.array(selected_angle_per_step)
-
-            angles, counts = np.unique(selected_angle_per_step, return_counts=True)
-            max_counts = np.max(counts)
-            selected_angles = angles[counts == max_counts]
-
-            tmp_idx = np.zeros(len(self.kernels) / NUM_ROTATION)
-            for selected_angle in selected_angles:
-                tmp_idx[selected_angle_per_step == selected_angle] = 1
-            tmp_idx = tmp_idx.astype(bool)
-
-            max_indices = max_idx_per_step[tmp_idx]
-            max_idx_kernel = max_indices[np.argmax(max_per_step[tmp_idx])]
-            return max_idx_kernel
+            return MFR, LOC
 
         patch = cropImage(image, bbox)
-        if patch is None:
-            return None
+        tight_bbox, tight_rect = self.findTightBboxFromBS(bs_patch)
+        if patch is None or tight_bbox is None:
+            return None, None
 
         patch = cv2.normalize(patch, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         norm_patch = patch - np.mean(patch)
-        max_per_MFR = MFR_MP(norm_patch)
-        # MFR = [cv2.matchTemplate(norm_patch.copy(), k.copy(), TEMPLATE_MATCHING_MATHOD, mask=(k != 0).astype(np.float32)) \
-                                  # for k in self.kernels]
-        max_idx_kernel = getKernelIdx(max_per_MFR)
+        max_per_MFR, LOC = MFR_MP(norm_patch)
+        max_idx_kernel = np.argmax(max_per_MFR) 
+        max_location = LOC[max_idx_kernel]
 
         if DEBUG_MODE:
-            max_patch = self.kernels[max_idx_kernel]
-            zero_mask = max_patch == 0
-            max_patch = (max_patch - np.min(max_patch)) / (np.max(max_patch) - np.min(max_patch))
+            max_kernel_patch = self.kernels[max_idx_kernel]
+            max_kernel_patch = (max_kernel_patch - np.min(max_kernel_patch)) / (np.max(max_kernel_patch) - np.min(max_kernel_patch))
             norm_patch = (norm_patch - np.min(norm_patch)) / (np.max(norm_patch) - np.min(norm_patch))
-            max_patch[zero_mask] = 0
-            KERNEL_RECORD[0] = (max_patch * 255).astype(np.uint8)
+            cv2.circle(norm_patch, tuple(max_location), 1, (0, 255, 0), -1)
+            KERNEL_RECORD[0] = (max_kernel_patch * 255).astype(np.uint8)
             PATCH_RECORD[0] = (norm_patch * 255).astype(np.uint8)
-        return max_idx_kernel
+        return max_idx_kernel, max_location
 
-    def getTargetAngle(self, kernel_angle_idx, bs_patch):
+    def getTargetAngle(self, kernel_angle_idx, bs_patch, image, max_loc, bbox, prev_angle):
         """
         Obtain the target angle give the selected kernel angle as a base to avoid aliasing.
 
@@ -173,83 +182,92 @@ class MatchedFilter:
         def dist(pt1, pt2):
             return np.linalg.norm(np.array(pt1) - np.array(pt2))
 
-        def clip_index(idx):
-            return idx % len(self.angles)
+        def getMeanValueFromArea(patch):
+            s_patch = patch[..., 1].astype(np.uint8)
+            ret2, s_patch = cv2.threshold(s_patch, 0, 255, cv2.THRESH_TOZERO+cv2.THRESH_OTSU)
+            s_area = s_patch[s_patch > 0]
+            if s_area.size:
+                return np.mean(s_area)
+            else:
+                return 0
 
-        def anglesDistance(angle1, angle2):
-            return min(self.clip_angle(angle1 - angle2), 
-                       self.clip_angle(angle2 - angle1))
+        def findColorLoc(patch, bbox):
+            bbox = np.array([np.min(bbox[:, 0]), np.min(bbox[:, 1]), np.max(bbox[:, 0]), np.max(bbox[:, 1])])
+            bbox[2:] = bbox[2:] - bbox[:2]
+            bbox[0] = max(0, bbox[0])
+            bbox[1] = max(0, bbox[1])
+            bbox = bbox.astype(int)
+            if bbox[2] < bbox[3]:
+                area1 = patch[bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]/2] # left: 180
+                area1 = getMeanValueFromArea(area1)
+                area2 = patch[bbox[1]:bbox[1]+bbox[3], bbox[0]+bbox[2]/2:bbox[0]+bbox[2]] # right: 0
+                area2 = getMeanValueFromArea(area2)
+                angles = [180, 0]
+            else:
+                area1 = patch[bbox[1]:bbox[1]+bbox[3]/2, bbox[0]:bbox[0]+bbox[2]] # upper: 270
+                area1 = getMeanValueFromArea(area1)
+                area2 = patch[bbox[1]+bbox[3]/2:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]] # bottom: 90
+                area2 = getMeanValueFromArea(area2)
+                angles = [270, 90]
+            return angles[np.argmax([area1, area2])]
 
-        _, contours, hierarchy = cv2.findContours(bs_patch, 1, 2)
-        max_area = 0
-        select_cnt = None
-        for cnt in contours:
-            M = cv2.moments(cnt)
-            if M["m00"] > max_area:
-                select_cnt = cnt
-                max_area = M["m00"]
-        if select_cnt is None:
+        def refineAngle(patch, bbox, bbox_rect, max_loc):
+            max_loc = np.array(max_loc)
+            patch_h, patch_w = patch.shape[:2]
+
+            _, (w, h), angle = bbox_rect
+            old_c = np.array([np.mean(bbox[:, 0]), np.mean(bbox[:, 1])])
+            tmp = np.ones([4, 3], float)
+            bbox = bbox + (max_loc - old_c)
+            tmp[:, :2] = bbox
+        
+            M = cv2.getRotationMatrix2D(tuple(max_loc), angle, 1)
+            rotated_patch = cv2.warpAffine(patch, M, (patch_w, patch_h))
+            bbox = M.dot(tmp.T).T
+            selected_angle = findColorLoc(rotated_patch, bbox)
+
+            return self.clip_angle(selected_angle + angle)
+
+
+        tight_bbox, tight_rect = self.findTightBboxFromBS(bs_patch)
+        if tight_bbox is None:
             return None
 
-        rect = cv2.minAreaRect(select_cnt)
-        bbox = cv2.boxPoints(rect)
-
-        d1 = dist(bbox[0], bbox[1])
-        d2 = dist(bbox[1], bbox[2])
+        d1 = dist(tight_bbox[0], tight_bbox[1])
+        d2 = dist(tight_bbox[1], tight_bbox[2])
         if d1 > d2:
-            if abs(bbox[1][0] - bbox[2][0]) < 1e-10:
-                slide = np.inf if bbox[1][1] - bbox[2][1] > 0 else -np.inf
+            if abs(tight_bbox[1][0] - tight_bbox[2][0]) < 1e-10:
+                slide = np.inf if tight_bbox[1][1] - tight_bbox[2][1] > 0 else -np.inf
                 origin_angle_radian = np.arctan(slide)
             else:
-                origin_angle_radian = np.arctan(float(bbox[1][1] - bbox[2][1]) / (bbox[1][0] - bbox[2][0]))
+                origin_angle_radian = np.arctan(float(tight_bbox[1][1] - tight_bbox[2][1]) / (tight_bbox[1][0] - tight_bbox[2][0]))
             origin_angle = origin_angle_radian / np.pi * 180
         else:
-            if abs(bbox[0][0] - bbox[1][0]) < 1e-10:
-                slide = np.inf if bbox[0][1] - bbox[1][1] > 0 else -np.inf
+            if abs(tight_bbox[0][0] - tight_bbox[1][0]) < 1e-10:
+                slide = np.inf if tight_bbox[0][1] - tight_bbox[1][1] > 0 else -np.inf
                 origin_angle_radian = np.arctan(slide)
             else:
-                origin_angle_radian = np.arctan(float(bbox[0][1] - bbox[1][1]) / (bbox[0][0] - bbox[1][0]))
+                origin_angle_radian = np.arctan(float(tight_bbox[0][1] - tight_bbox[1][1]) / (tight_bbox[0][0] - tight_bbox[1][0]))
             origin_angle = origin_angle_radian / np.pi * 180
         origin_angle = self.clip_angle(origin_angle)
         kernel_angle = self.angles[kernel_angle_idx]
 
-        if anglesDistance(kernel_angle, origin_angle) > THRESH_ANGLE_FLIP:
-            angle = origin_angle + 180
+        if self.angles_distance(kernel_angle, origin_angle) > THRESH_ANGLE_DISTANCE:
+            angle0 = self.clip_angle(origin_angle + 180)
         else:
-            angle = origin_angle
+            angle0 = origin_angle
 
-        return self.clip_angle(angle)
-
-    def updateKernel(self, image, bs_patch, bbox, angle):
-        """
-        Update the kernel based on the current BS result and bbox
-
-        Params:
-            kernel_angle_idx: int value
-            bs_patch: binary image patch from BS result
-            bbox: bounding box
-            angle: float value of current target angle
-        """
         patch = cropImage(image, bbox)
+        patch[bs_patch == 0] = 0
         if patch is None:
-            return
+            return None
+        patch = cv2.cvtColor(patch, cv2.COLOR_BGR2HSV)
+        angle1 = self.clip_angle(refineAngle(patch, tight_bbox, tight_rect, max_loc))
 
-        _, contours, hierarchy = cv2.findContours(bs_patch, 1, 2)
-        max_area = 0
-        select_cnt = None
-        for cnt in contours:
-            M = cv2.moments(cnt)
-            if M["m00"] > max_area:
-                select_cnt = cnt
-                max_area = M["m00"]
-        if select_cnt is None:
-            return
-        bbox_tight = cv2.boundingRect(select_cnt)
-        patch_tight = cropImage(patch, bbox_tight)
-        if patch_tight is not None:
-            self.kernel = patch_tight.astype(np.float32)
-            self.kernels, self.angles = self.createMatchedFilterBank(angle, self.kernels, self.angles)
-
+        if self.angles_distance(angle0, angle1) > THRESH_ANGLE_DISTANCE:
+            return prev_angle
+        else:
+            return angle0
 
 
 

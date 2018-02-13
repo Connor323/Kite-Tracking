@@ -27,7 +27,7 @@ def MLP_Detection_MP(image, init_detection=False):
         num_block_y = (h / 2 - BBOX_SIZE[1]) / STEP_SIZE[1] + 1
         num_blocks = num_block_x * num_block_y
 
-        for i in xrange(thread_id, num_blocks, NUM_THREADS):
+        for i in xrange(thread_id, num_blocks, NUM_THREADS_TRACKING):
             x = i % num_block_x * STEP_SIZE[0]
             y = i / num_block_x * STEP_SIZE[1]
             blocks.append((x, y, image[y:y + BBOX_SIZE[1], x:x + BBOX_SIZE[0]]))
@@ -79,7 +79,7 @@ def MLP_Detection_MP(image, init_detection=False):
         # Assign jobs
         tic = time.time()
         threads = []
-        results = [[] for _ in range(NUM_THREADS)]
+        results = [[] for _ in range(NUM_THREADS_TRACKING)]
         for centroid, result in zip(centroids, results):
             t = threading.Thread(target=work_bg, args=(bs_image, centroid, result))
             t.start()
@@ -93,7 +93,7 @@ def MLP_Detection_MP(image, init_detection=False):
         # Assign jobs
         tic = time.time()
         threads = []
-        results = [[] for _ in range(NUM_THREADS)]
+        results = [[] for _ in range(NUM_THREADS_TRACKING)]
         for thread_id, result in enumerate(results):
             t = threading.Thread(target=work, args=(thread_id, image, result))
             t.start()
