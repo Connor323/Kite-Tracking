@@ -67,7 +67,6 @@ class Interface:
  
         # Update tracker
         ok, bbox = self.tracker.update(frame)
-
         # bbox limitation (fixed w and h)
         if ok and (tracker_type == "KCF" or bbox[2] * bbox[3] <= 0):
             bbox = list(bbox)
@@ -113,7 +112,6 @@ class Interface:
                 return False, bbox, None, center_loc
         else:
             return False, bbox, None, None
-
         # Calculate Frames per second (FPS)
         fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer);
 
@@ -129,7 +127,7 @@ class Interface:
 
 # This is an example for using Interface
 # To avoid opening opencv window and verbose information, 
-# please set the vvariables:
+# please set the variables:
 #           WRITE_TMP_RESULT = True
 #           DEBUG_MODE = False
 # 

@@ -77,14 +77,13 @@ def swapChannels(image):
     image[..., 2] = tmp.copy()
     return image
 
-def process_bs(image, downsample_rate=2, low_area=50, up_area=1000, return_centroids=False):
+def process_bs(image, low_area=10, up_area=1000, return_centroids=False):
     """
     This function applies the BS model given the current frame and implements the morphological 
     operation and region growing as the post process. 
 
     Params: 
         image: current frame 
-        downsample_rate: downsampling the image for faster speed. 
         low_area: minimum area of target
         up_area: maximum area of target
         return_centroids: if True, reture the centroid of selected areas
@@ -96,7 +95,7 @@ def process_bs(image, downsample_rate=2, low_area=50, up_area=1000, return_centr
     h, w = image.shape[:2]
     
     # Downsample the image for faster speed
-    image_resize = cv2.resize(image, (w / downsample_rate, h / downsample_rate))
+    image_resize = cv2.resize(image, (int(w / BS_DOWNSAMPLE), int(h / BS_DOWNSAMPLE)))
 
     # Apply BS 
     fgmask = fgbg.apply(image_resize)
@@ -110,7 +109,9 @@ def process_bs(image, downsample_rate=2, low_area=50, up_area=1000, return_centr
     
     # obtain the regions in range of area (low_area, up_area)
     num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(fgmask.astype(np.uint8), connectivity=8)
-    select_labels = np.where((stats[..., -1] > low_area) * (stats[..., -1] < up_area) * centroids[..., -1] > h / downsample_rate / 2)[0]
+    select_labels = np.where((stats[..., -1] > low_area) * \
+                             (stats[..., -1] < up_area) * 
+                             centroids[..., -1] > h / BS_DOWNSAMPLE / 2)[0]
 
     # refine the labels
     tmp = np.zeros_like(labels).astype(np.uint8)
@@ -126,7 +127,7 @@ def process_bs(image, downsample_rate=2, low_area=50, up_area=1000, return_centr
         return final_labels
     else:
         centroids = centroids[select_labels]
-        centroids *= 2
+        centroids *= BS_DOWNSAMPLE
         return final_labels, centroids.astype(int)
 
 def centerBoxAndCrop(image, centroids, bbox):

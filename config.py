@@ -12,14 +12,14 @@ tracker_type = tracker_types[2]
 
 ############################# Data Setting #############################
 # image and template path
-IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
-# IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
+# IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
+IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
 # IMAGE_PATH = "../images/cloudy0/*.bmp"
 TEMPLATE_PATH = "templates/kite0/*.png"
-KERNEL_PATH = "kernels/kernel_0.bmp"
-# KERNEL_PATH = "kernels/kernel_1.bmp"
+# KERNEL_PATH = "kernels/kernel_0.bmp"
+KERNEL_PATH = "kernels/kernel_1.bmp"
 
-START_FRAME = None #"/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-original.bmp" # the path to the start frame name, in case we want to start in the middle of video
+START_FRAME = "/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-original.bmp" # the path to the start frame name, in case we want to start in the middle of video
 				   # Set None if we want to stat from beginning. 
 # File format
 # NOTE: Format 0: 2018-1-18-12-49-0-204-original.bmp
@@ -35,12 +35,13 @@ bg_clf = joblib.load(BG_MODEL_PATH) # MLP_2 for BS detection
 ###########################################################################
 
 #################### Background Substraction Setting ######################
-fgbg_kernel_close_size = 3 # for morphological closing and opening 
-fgbg_kernel_open_size = 3 # for morphological closing and opening 
+fgbg_kernel_close_size = 5 # for morphological closing and opening 
+fgbg_kernel_open_size = 5 # for morphological closing and opening 
 history_length = 100 # buffer of history
 fgbg_kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_close_size, fgbg_kernel_close_size))
 fgbg_kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_open_size, fgbg_kernel_open_size))
 fgbg = cv2.bgsegm.createBackgroundSubtractorMOG(history=history_length)
+BS_DOWNSAMPLE = 2.5
 
 # BS post-process setting
 MIN_AREA = 10 # minimum area inside bbox for BS
@@ -48,7 +49,7 @@ MAX_AREA = 600 # maximum area inside bbox for BS
 ###########################################################################
     
 ############################# Tracking Setting ############################
-PROB_CRITERIA = 0.70 # The prob_thresh value for MLP_2
+PROB_CRITERIA = 0.50 # The prob_thresh value for MLP_2
 NUM_THREADS_TRACKING = 8 # Multi-thread boost setting 
 
 TRACKING_CRITERIA_AREA = 25 # minimum area inside bbox for tracking
