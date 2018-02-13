@@ -375,5 +375,6 @@ def drawAnlge(frame, angle, bbox, length=25):
     cv2.line(frame, center, vertice, (0, 0, 255), 5)
     return frame
 
-
+def drawPoint(frame, point, color=(255, 0, 255), radius=10):
+    return cv2.circle(frame, tuple(point), radius, color, -1)
 
