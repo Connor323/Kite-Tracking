@@ -185,6 +185,8 @@ class MatchedFilter:
         def getMeanValueFromArea(patch):
             s_patch = patch[..., 1].astype(np.uint8)
             ret2, s_patch = cv2.threshold(s_patch, 0, 255, cv2.THRESH_TOZERO+cv2.THRESH_OTSU)
+            if s_patch is None: # TODO: check why is None
+                return 0
             s_area = s_patch[s_patch > 0]
             if s_area.size:
                 return np.mean(s_area)
