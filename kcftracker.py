@@ -6,9 +6,6 @@ import numpy as np
 import cv2
 from time import time
 
-from fhog import *
-
-
 # ffttools
 def fftd(img, backwards=False):	
 	# shape of img can be (m,n), (m,n,1) or (m,n,2)	
