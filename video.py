@@ -22,7 +22,7 @@ class Video:
         self.start_idx = 0
         if start_frame is not None:
             self.start_idx = np.squeeze(np.where(self.files == start_frame))
-        print "Starting from frame: %d" % (self.start_idx)
+        print("Starting from frame: %d" % (self.start_idx))
         self.files = self.files[self.start_idx:]   
         self.iter = iter(self.files)
     
@@ -59,10 +59,10 @@ class Video:
             image: current frame
         """
         try:
-            file = self.iter.next()
+            file = next(self.iter)
             image = cv2.imread(file)
             self.counter += 1
-        except StopIteration, e:
+        except(StopIteration):
             return False, None
         return True, image
 

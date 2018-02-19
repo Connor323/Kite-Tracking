@@ -20,7 +20,7 @@ def signal_handler(signal, frame):
     """
     print('   -> Stop the program by Ctrl+C! ')
     if not DEBUG_MODE:
-        print "Bounding box saves to {}".format(TARGET_BOX)
+        print("Bounding box saves to {}".format(TARGET_BOX))
         BBOX_FILE.close()
     sys.exit(0)
 
@@ -95,7 +95,7 @@ def process_bs(image, low_area=10, up_area=1000, return_centroids=False):
     h, w = image.shape[:2]
     
     # Downsample the image for faster speed
-    image_resize = cv2.resize(image, (int(w / BS_DOWNSAMPLE), int(h / BS_DOWNSAMPLE)))
+    image_resize = cv2.resize(image, (int(w // BS_DOWNSAMPLE), int(h // BS_DOWNSAMPLE)))
 
     # Apply BS 
     fgmask = fgbg.apply(image_resize)
@@ -144,7 +144,7 @@ def centerBoxAndCrop(image, centroids, bbox):
     """
     h, w = image.shape[:2]
     nd_bbox = np.array(bbox)
-    c_bbox = np.array(nd_bbox[:2] + nd_bbox[2:] / 2)
+    c_bbox = np.array(nd_bbox[:2] + nd_bbox[2:] // 2)
     
     dists = np.linalg.norm(centroids - c_bbox, axis=1)
     min_idx = np.argmin(dists)
@@ -152,7 +152,7 @@ def centerBoxAndCrop(image, centroids, bbox):
 
     if min_val > RECENTER_THRESH:
         new_bbox = nd_bbox
-        new_bbox[:2] = centroids[min_idx] - nd_bbox[2:] / 2
+        new_bbox[:2] = centroids[min_idx] - nd_bbox[2:] // 2
         new_bbox = new_bbox.tolist()
         return cropImage(image, new_bbox), True
     else:
@@ -203,7 +203,7 @@ def cropImageFromBS(image, bbox):
 
     return patch, ret
 
-def cropImageAndAnalysis(clf, image, bbox):
+def cropImageAndAnalysis(image, bbox):
     """
     Determine if the current patch contains target
 
@@ -214,8 +214,6 @@ def cropImageAndAnalysis(clf, image, bbox):
         if the current tracking is successful (boolean)
         image patch from BS result
     """
-    assert clf is not None, "No classifier loaded!"
-
     patch, ret = cropImageFromBS(image, bbox)
     if patch is None or ret: # crop image size is incorrect (near the edge)
         return False, patch
@@ -369,7 +367,7 @@ def drawAnlge(frame, angle, bbox, length=25):
         Painted image
     """
     bbox = np.array(bbox).astype(int)
-    center = tuple(bbox[:2] + bbox[2:] / 2)
+    center = tuple(bbox[:2] + bbox[2:] // 2)
 
     radian = angle / 180 * np.pi
     vertice = (int(center[0] + np.cos(radian)*length), int(center[1] + np.sin(radian)*length))

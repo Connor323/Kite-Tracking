@@ -40,7 +40,7 @@ def rearrange(img):
 	#return np.fft.fftshift(img, axes=(0,1))
 	assert(img.ndim==2)
 	img_ = np.zeros(img.shape, img.dtype)
-	xh, yh = img.shape[1]/2, img.shape[0]/2
+	xh, yh = img.shape[1]//2, img.shape[0]//2
 	img_[0:yh,0:xh], img_[yh:img.shape[0],xh:img.shape[1]] = img[yh:img.shape[0],xh:img.shape[1]], img[0:yh,0:xh]
 	img_[0:yh,xh:img.shape[1]], img_[yh:img.shape[0],0:xh] = img[yh:img.shape[0],0:xh], img[0:yh,xh:img.shape[1]]
 	return img_
@@ -228,7 +228,7 @@ class KCFTracker:
 
 		z = subwindow(image, extracted_roi, cv2.BORDER_REPLICATE)
 		if(z.shape[1]!=self._tmpl_sz[0] or z.shape[0]!=self._tmpl_sz[1]):
-			z = cv2.resize(z, tuple(self._tmpl_sz))
+			z = cv2.resize(z, tuple([int(self._tmpl_sz[0]), int(self._tmpl_sz[1])]))
 
 		if(self._hogfeatures):
 			mapp = {'sizeX':0, 'sizeY':0, 'numFeatures':0, 'map':0}
@@ -277,7 +277,7 @@ class KCFTracker:
 
 
 	def init(self, image, roi):
-		self._roi = map(float, roi)
+		self._roi = list(map(float, roi))
 		assert(roi[2]>0 and roi[3]>0)
 		self._tmpl = self.getFeatures(image, 1)
 		self._prob = self.createGaussianPeak(self.size_patch[0], self.size_patch[1])

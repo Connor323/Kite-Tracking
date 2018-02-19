@@ -21,10 +21,11 @@ tracker_types = ['BOOSTING', 'MIL','KCF', 'TLD', 'MEDIANFLOW', 'GOTURN']
 tracker_type = tracker_types[1]
 
 # image and template path
+DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 # IMAGE_PATH = "../images/clear0/*.bmp"
 IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
 # IMAGE_PATH = "../images/cloudy0/*.bmp"
-TEMPLATE_PATH = "templates/kite0/*.png"
+TEMPLATE_PATH = os.path.join(DIR_PATH, "templates/kite0/*.png")
 # TEMPLATE_PATH = "templates/kite1/*.png"
 
 # File format

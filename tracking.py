@@ -41,24 +41,32 @@ if __name__ == '__main__' :
 
     # Exit if video not opened.
     if not video.isOpened():
-        print "Could not open video"
+        print("Could not open video")
         sys.exit()
  
     # Read first frame.
     ok, frame = video.read()
     if not ok:
-        print 'Cannot read video file'
+        print('Cannot read video file')
         sys.exit()
  
     # Use MLP find init_bbox if init_bbox is none
     if init_bbox is None:
-        init_bbox, bs_patch = MLP_Detection_MP(frame, init_detection=True)
+        for _ in range(INIT_FRAMES_NUM):
+            MLP_Detection_MP(frame, init_detection=True)
+            # Read first frame.
+            ok, frame = video.read()
+            if not ok:
+                print('Cannot read video file')
+                sys.exit()
+
+        init_bbox, bs_patch = MLP_Detection_MP(frame, init_detection=False)
         # Stop if both methods failed
         if init_bbox is None:
             raise ValueError("Initial Tracking Failed!!!")
 
     # Initialize tracker with first frame and bounding box
-    print "image {} / {}, initial bbox: {}".format(video.getFrameIdx(), frame_num, init_bbox) 
+    print("image {} / {}, initial bbox: {}".format(video.getFrameIdx(), frame_num, init_bbox) )
     ok = tracker.init(frame, init_bbox)
 
     # Draw initial bbox
@@ -87,7 +95,7 @@ if __name__ == '__main__' :
 
         if ok:
             # Crop patch and analysis using histogram
-            ok, bs_patch = cropImageAndAnalysis(clf, frame, bbox)
+            ok, bs_patch = cropImageAndAnalysis(frame, bbox)
 
         # Use decision buffer to make final decision.
         ok = pushBuffer(ok)
@@ -99,10 +107,10 @@ if __name__ == '__main__' :
         else :
             # Tracking failure
             if DEBUG_MODE:
-                print "   %s Failed! Use classifier!" % tracker_type
+                print("   %s Failed! Use classifier!" % tracker_type)
             bbox, bs_patch = MLP_Detection_MP(frame, init_detection=False)
             if bbox is None:
-                print "   !!! -> Tracking Failed! Skip current frame..."
+                print("   !!! -> Tracking Failed! Skip current frame...")
                 cv2.putText(frame, "Tracking Failed! Skip current frame...", (100,150), cv2.FONT_HERSHEY_SIMPLEX, 2.0,(0,0,255),5)
                 prev_angle = None
                 if DEBUG_MODE:
@@ -137,13 +145,13 @@ if __name__ == '__main__' :
         fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer);
 
         # Print out current info.
-        print "image {:5d}/{:5d}  |  bbox: {:4d} {:4d} {:3d} {:3d}  |  FPS: {:2d}  |  anlge: {}".format(
-                                                                        video.getFrameIdx(), 
-                                                                        frame_num, 
-                                                                        int(bbox[0]), int(bbox[1]), 
-                                                                        int(bbox[2]), int(bbox[3]),
-                                                                        int(fps),
-                                                                        angle) 
+        print("image {:5d}/{:5d}  |  bbox: {:4d} {:4d} {:3d} {:3d}  |  FPS: {:2d}  |  anlge: {}".format(
+                                                                                video.getFrameIdx(), 
+                                                                                frame_num, 
+                                                                                int(bbox[0]), int(bbox[1]), 
+                                                                                int(bbox[2]), int(bbox[3]),
+                                                                                int(fps),
+                                                                                angle) )
 
         # Display tracker type on frame
         cv2.putText(frame, tracker_type + " Tracker", (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0, 255, 0), 5);
@@ -162,8 +170,8 @@ if __name__ == '__main__' :
             k = cv2.waitKey(1)
             if k == 32 : break
 
-print "Finishing... Total image %d" % frames_counter
+print("Finishing... Total image %d" % frames_counter)
 if DEBUG_MODE:
-    print "Save image to {}".format(image_name)
+    print("Save image to {}".format(image_name))
     video_writer.close()
 

@@ -39,8 +39,8 @@ class MatchedFilter:
             nH = int((h * cos) + (w * sin))
 
             # adjust the rotation matrix to take into account translation
-            M[0, 2] += (nW / 2) - cX
-            M[1, 2] += (nH / 2) - cY
+            M[0, 2] += (nW // 2) - cX
+            M[1, 2] += (nH // 2) - cY
 
             # perform the actual rotation and return the image
             return cv2.warpAffine(image, M, (nW, nH), borderMode=cv2.BORDER_CONSTANT, borderValue=0)
@@ -49,7 +49,7 @@ class MatchedFilter:
         K = cv2.normalize(K, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         K -= np.mean(K)
         cur_rot = 0.
-        rotate_interval = 360 / NUM_ROTATION
+        rotate_interval = 360 // NUM_ROTATION
         if prev_kernels is not None:
             kernels, angles = [] + prev_kernels, [] + prev_angles
         else:
@@ -200,15 +200,15 @@ class MatchedFilter:
             bbox[1] = max(0, bbox[1])
             bbox = bbox.astype(int)
             if bbox[2] < bbox[3]:
-                area1 = patch[bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]/2] # left: 180
+                area1 = patch[bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]//2] # left: 180
                 area1 = getMeanValueFromArea(area1)
-                area2 = patch[bbox[1]:bbox[1]+bbox[3], bbox[0]+bbox[2]/2:bbox[0]+bbox[2]] # right: 0
+                area2 = patch[bbox[1]:bbox[1]+bbox[3], bbox[0]+bbox[2]//2:bbox[0]+bbox[2]] # right: 0
                 area2 = getMeanValueFromArea(area2)
                 angles = [180, 0]
             else:
-                area1 = patch[bbox[1]:bbox[1]+bbox[3]/2, bbox[0]:bbox[0]+bbox[2]] # upper: 270
+                area1 = patch[bbox[1]:bbox[1]+bbox[3]//2, bbox[0]:bbox[0]+bbox[2]] # upper: 270
                 area1 = getMeanValueFromArea(area1)
-                area2 = patch[bbox[1]+bbox[3]/2:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]] # bottom: 90
+                area2 = patch[bbox[1]+bbox[3]//2:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]] # bottom: 90
                 area2 = getMeanValueFromArea(area2)
                 angles = [270, 90]
             return angles[np.argmax([area1, area2])]

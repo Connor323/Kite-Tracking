@@ -36,7 +36,14 @@ class Interface:
         """
         # Use MLP find init_bbox if init_bbox is none
         if init_bbox is None:
-            init_bbox, bs_patch = MLP_Detection_MP(frame, init_detection=True)
+            for _ in range(INIT_FRAMES_NUM):
+                MLP_Detection_MP(frame, init_detection=True)
+                # Read first frame.
+                ok, frame = video.read()
+                if not ok:
+                    print('Cannot read video file')
+                    sys.exit()
+            init_bbox, bs_patch = MLP_Detection_MP(frame, init_detection=False)
             # Stop if both methods failed
             if init_bbox is None:
                 raise ValueError("Initial Tracking Failed!!!")
@@ -75,7 +82,7 @@ class Interface:
 
         if ok:
             # Crop patch and analysis using histogram
-            ok, bs_patch = cropImageAndAnalysis(clf, frame, bbox)
+            ok, bs_patch = cropImageAndAnalysis(frame, bbox)
 
         # Use decision buffer to make final decision.
         ok = pushBuffer(ok)
@@ -86,7 +93,7 @@ class Interface:
             bbox, bs_patch = MLP_Detection_MP(frame, init_detection=False)
             if bbox is None:
                 if verbose:
-                    print "   !!! -> Tracking Failed! Skip current frame..."
+                    print("   !!! -> Tracking Failed! Skip current frame...")
                 self.prev_angle = None
                 return False, None, None, None
 
@@ -117,12 +124,12 @@ class Interface:
 
         if verbose:
             # Print out current info.
-            print "image {:5d}  |  bbox: {:4d} {:4d} {:3d} {:3d}  |  FPS: {:2d}  |  anlge: {}".format(
-                                                                            self.frame_num, 
-                                                                            int(bbox[0]), int(bbox[1]), 
-                                                                            int(bbox[2]), int(bbox[3]),
-                                                                            int(fps),
-                                                                            angle) 
+            print("image {:5d}  |  bbox: {:4d} {:4d} {:3d} {:3d}  |  FPS: {:2d}  |  anlge: {}".format(
+                                                                                        self.frame_num, 
+                                                                                        int(bbox[0]), int(bbox[1]), 
+                                                                                        int(bbox[2]), int(bbox[3]),
+                                                                                        int(fps),
+                                                                                        angle)) 
         return ok, bbox, angle, center_loc
 
 # This is an example for using Interface
@@ -142,7 +149,7 @@ if __name__ == "__main__":
     video = Video(files, FILE_FORMAT, START_FRAME)
     ok, frame = video.read()
     if not ok:
-        print 'Cannot read video file'
+        print('Cannot read video file')
         sys.exit()
 
     tracker = Interface()
@@ -152,17 +159,17 @@ if __name__ == "__main__":
         # Read one frame
         ok, frame = video.read()
         if not ok:
-            print 'Cannot read video file'
+            print('Cannot read video file')
             sys.exit()
 
         # Obtain results
         ok, bbox, angle, center_loc = tracker.update(frame, verbose=False)
         if ok:
-            print "bbox: {:4d} {:4d} {:3d} {:3d}  |  anlge: {:3d}  |  center: {:4d} {:4d}".format(
-                                                                       int(bbox[0]), int(bbox[1]), 
-                                                                       int(bbox[2]), int(bbox[3]),
-                                                                       int(angle),
-                                                                       center_loc[0], center_loc[1]) 
+            print("bbox: {:4d} {:4d} {:3d} {:3d}  |  anlge: {:3d}  |  center: {:4d} {:4d}".format(
+                                                                                   int(bbox[0]), int(bbox[1]), 
+                                                                                   int(bbox[2]), int(bbox[3]),
+                                                                                   int(angle),
+                                                                                   center_loc[0], center_loc[1])) 
             drawBox(frame, bbox)
             drawAnlge(frame, angle, bbox)
             drawPoint(frame, center_loc)
@@ -170,7 +177,7 @@ if __name__ == "__main__":
             cv2.imshow("frame", frame_resize)
             cv2.waitKey(1)
         else:
-            print "   ->Tracking failed!!!"
+            print("   ->Tracking failed!!!")
 
 
 

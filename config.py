@@ -12,14 +12,14 @@ tracker_type = tracker_types[2]
 
 ############################# Data Setting #############################
 # image and template path
-# IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
-IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
+IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
+# IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
 # IMAGE_PATH = "../images/cloudy0/*.bmp"
 TEMPLATE_PATH = "templates/kite0/*.png"
-# KERNEL_PATH = "kernels/kernel_0.bmp"
-KERNEL_PATH = "kernels/kernel_1.bmp"
+KERNEL_PATH = "kernels/kernel_0.bmp"
+# KERNEL_PATH = "kernels/kernel_1.bmp"
 
-START_FRAME = "/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-original.bmp" # the path to the start frame name, in case we want to start in the middle of video
+START_FRAME = None # "/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-original.bmp" # the path to the start frame name, in case we want to start in the middle of video
 				   # Set None if we want to stat from beginning. 
 # File format
 # NOTE: Format 0: 2018-1-18-12-49-0-204-original.bmp
@@ -27,10 +27,11 @@ START_FRAME = "/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-original.
 FILE_FORMAT = 0
 
 # Classifier loading 
-MLP_MODEL_PATH = "model/mlp_1layer.model"
-BG_MODEL_PATH  = "model/mlp_bg.model" 
+# MLP_MODEL_PATH = "model/mlp_1layer.model"
+# BG_MODEL_PATH  = "model/mlp_bg.model" 
+BG_MODEL_PATH  = "model/mlp-bg-py3.model" 
 
-clf = joblib.load(MLP_MODEL_PATH) # MLP_1 for initial bbox detection 
+# clf = joblib.load(MLP_MODEL_PATH) # MLP_1 for initial bbox detection 
 bg_clf = joblib.load(BG_MODEL_PATH) # MLP_2 for BS detection
 ###########################################################################
 
@@ -58,6 +59,7 @@ RECENTER_THRESH = 10 # Max distance allowed from the centroid to the center of b
 DECISION_BUFFER_SIZE = 3 # Decision buffer size
 DECISION_BUFFER = [] # Decision buffer
 BUFFER_MODE = False # If True, use the descidion buffer for tracking
+INIT_FRAMES_NUM = 10
 ###########################################################################
 
 ######################### Matched Filter Setting ##########################
