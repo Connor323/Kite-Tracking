@@ -12,12 +12,13 @@ tracker_type = tracker_types[2]
 
 ############################# Data Setting #############################
 # image and template path
+DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
 # IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
 # IMAGE_PATH = "../images/cloudy0/*.bmp"
-TEMPLATE_PATH = "templates/kite0/*.png"
-KERNEL_PATH = "kernels/kernel_0.bmp"
-# KERNEL_PATH = "kernels/kernel_1.bmp"
+TEMPLATE_PATH = os.path.join(DIR_PATH, "templates/kite0/*.png")
+KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_0.bmp")
+# KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_1.bmp")
 
 START_FRAME = None # "/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-original.bmp" # the path to the start frame name, in case we want to start in the middle of video
 				   # Set None if we want to stat from beginning. 
