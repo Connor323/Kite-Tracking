@@ -30,7 +30,7 @@ FILE_FORMAT = 0
 # Classifier loading 
 # MLP_MODEL_PATH = "model/mlp_1layer.model"
 # BG_MODEL_PATH  = "model/mlp_bg.model" 
-BG_MODEL_PATH  = "model/mlp-bg-py3.model" 
+BG_MODEL_PATH  = "model/mlp-bg-py3.model"
 
 # clf = joblib.load(MLP_MODEL_PATH) # MLP_1 for initial bbox detection 
 bg_clf = joblib.load(BG_MODEL_PATH) # MLP_2 for BS detection
@@ -44,6 +44,8 @@ fgbg_kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_cl
 fgbg_kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_open_size, fgbg_kernel_open_size))
 fgbg = cv2.bgsegm.createBackgroundSubtractorMOG(history=history_length)
 BS_DOWNSAMPLE = 2.5
+HEIGHT_ROI_RATIO = 0.3 # overall ROI starting from [HEIGHT_ROI_RATIO*h : h] in rows
+INIT_FRAMES_NUM = 10 # the number of frames to skip for BS initicalization
 
 # BS post-process setting
 MIN_AREA = 10 # minimum area inside bbox for BS
@@ -52,21 +54,20 @@ MAX_AREA = 600 # maximum area inside bbox for BS
     
 ############################# Tracking Setting ############################
 PROB_CRITERIA = 0.50 # The prob_thresh value for MLP_2
-NUM_THREADS_TRACKING = 8 # Multi-thread boost setting 
+NUM_THREADS_TRACKING = 16 # Multi-thread boost setting 
 
-TRACKING_CRITERIA_AREA = 25 # minimum area inside bbox for tracking
+TRACKING_CRITERIA_AREA = 10 # minimum area inside bbox for tracking
 RECENTER_THRESH = 10 # Max distance allowed from the centroid to the center of bbox
 
 DECISION_BUFFER_SIZE = 3 # Decision buffer size
 DECISION_BUFFER = [] # Decision buffer
 BUFFER_MODE = False # If True, use the descidion buffer for tracking
-INIT_FRAMES_NUM = 10
 ###########################################################################
 
 ######################### Matched Filter Setting ##########################
 NUM_ROTATION = 8 # Number of rotation for creating filter bank
 THRESH_ANGLE_DISTANCE = 100 # The thresholding value for the difference of two angles in degree.
-NUM_THREADS_MFR = 8 # Number of treads for computing MFR
+NUM_THREADS_MFR = 16 # Number of treads for computing MFR
 ###########################################################################
 
 ############################# BBOX Setting ################################

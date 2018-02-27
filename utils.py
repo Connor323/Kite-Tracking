@@ -96,6 +96,8 @@ def process_bs(image, low_area=10, up_area=1000, return_centroids=False):
     
     # Downsample the image for faster speed
     image_resize = cv2.resize(image, (int(w // BS_DOWNSAMPLE), int(h // BS_DOWNSAMPLE)))
+    ROI_Y = int(len(image_resize) * HEIGHT_ROI_RATIO)
+    image_resize = image_resize[ROI_Y:]
 
     # Apply BS 
     fgmask = fgbg.apply(image_resize)
@@ -110,24 +112,28 @@ def process_bs(image, low_area=10, up_area=1000, return_centroids=False):
     # obtain the regions in range of area (low_area, up_area)
     num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(fgmask.astype(np.uint8), connectivity=8)
     select_labels = np.where((stats[..., -1] > low_area) * \
-                             (stats[..., -1] < up_area) * 
-                             centroids[..., -1] > h / BS_DOWNSAMPLE / 2)[0]
+                             (stats[..., -1] < up_area))[0]
 
     # refine the labels
+    new_h, new_w = labels.shape[:2]
+    tmp_labels = np.zeros([new_h+ROI_Y, new_w], np.uint8)
     tmp = np.zeros_like(labels).astype(np.uint8)
     for select_label in select_labels: 
         tmp[labels == select_label] = 255
-    final_labels = cv2.resize(tmp, (w, h), cv2.INTER_NEAREST)
+    tmp_labels[ROI_Y:] = tmp
+    final_labels = cv2.resize(tmp_labels, (w, h), cv2.INTER_NEAREST)
 
     if DEBUG_MODE:
-        tmp_show = cv2.resize(tmp, VIZ_SIZE, cv2.INTER_NEAREST)
+        tmp_show = cv2.resize(tmp_labels, VIZ_SIZE, cv2.INTER_NEAREST)
         BS_POST_RECORD[0] = cv2.cvtColor(tmp_show, cv2.COLOR_GRAY2RGB)
     
     if not return_centroids:
         return final_labels
     else:
-        centroids = centroids[select_labels]
-        centroids *= BS_DOWNSAMPLE
+        if len(centroids):
+            centroids = centroids[select_labels]
+            centroids[:, 1] += ROI_Y
+            centroids *= BS_DOWNSAMPLE
         return final_labels, centroids.astype(int)
 
 def centerBoxAndCrop(image, centroids, bbox):
@@ -197,11 +203,9 @@ def cropImageFromBS(image, bbox):
     """
     image, centroids = process_bs(image, low_area=MIN_AREA, up_area=MAX_AREA, return_centroids=True)
     if len(centroids) > 0:
-        patch, ret = centerBoxAndCrop(image, centroids, bbox)
+        return centerBoxAndCrop(image, centroids, bbox)
     else:
         return None, True
-
-    return patch, ret
 
 def cropImageAndAnalysis(image, bbox):
     """
