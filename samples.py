@@ -56,8 +56,8 @@ call(["mkdir", "-p", NEG_SAMPLE_PATH])
 
 SAMPLE_SIZE = (51, 51)
 POS_CRITERIR = 0.8
-POS_SAMPLE_PER_FRAME = 3
-NEG_SAMPLE_PER_FRAME = 3
+POS_SAMPLE_PER_FRAME = 5
+NEG_SAMPLE_PER_FRAME = 5
 EDGE_SAMPLE_PER_FRAME = 0
 EDGE_RANGE = 400
 MAX_LOOP = 1000
@@ -209,13 +209,13 @@ if __name__ == '__main__' :
 
     # Exit if video not opened.
     if not video.isOpened():
-        print "Could not open video"
+        print("Could not open video")
         sys.exit()
  
     # Read first frame.
     ok, frame = video.read()
     if not ok:
-        print 'Cannot read video file'
+        print('Cannot read video file')
         sys.exit()
  
     # Use SIFT find init_bbox if init_bbox is none
@@ -227,7 +227,7 @@ if __name__ == '__main__' :
         init_bbox = sift.getBoxFromPt(pt, DEFAULT_BBOX)
 
     # Initialize tracker with first frame and bounding box
-    print "image {} / {}, bbox: {}".format(video.getFrameIdx(), frame_num, init_bbox) 
+    print("image {} / {}, bbox: {}".format(video.getFrameIdx(), frame_num, init_bbox) )
     ok = tracker.init(frame, init_bbox)
 
     # Draw initial bbox
@@ -255,19 +255,19 @@ if __name__ == '__main__' :
             ok = False
 
         # Print out current info.
-        print "image {} / {}, bbox: {}, histogram distance: {}".format(video.getFrameIdx(), 
-                                                                       frame_num, 
-                                                                       bbox,
-                                                                       dist) 
+        print ("image {} / {}, bbox: {}, histogram distance: {}".format(video.getFrameIdx(), 
+                                                                               frame_num, 
+                                                                               bbox,
+                                                                               dist) )
  
         if not ok: # Tracking failure
-            print "   %s Failed! Use SIFT!" % tracker_type
+            print ("   %s Failed! Use SIFT!" % tracker_type)
             cv2.putText(frame, "%s Failed! Use SIFT" % tracker_type, (100,300), cv2.FONT_HERSHEY_SIMPLEX, 2.0,(0,0,255),5)
             pt = sift.compute(frame)
             
             # Stop if both methods failed
             if pt is None:
-                print "   Tracking Failed!!!"
+                print ("   Tracking Failed!!!")
                 break
 
             # Update bbox per SIFI point
@@ -284,13 +284,14 @@ if __name__ == '__main__' :
             currHist = cropImageAndHistogram(frame, bbox, HOG)
  
         # Create and record samples
-        pos_samples, neg_samples, pos_bboxs, neg_bboxs = create_sample(frame, bbox, 
-                                                                       POS_SAMPLE_PER_FRAME, 
-                                                                       NEG_SAMPLE_PER_FRAME,
-                                                                       EDGE_SAMPLE_PER_FRAME,
-                                                                       POS_CRITERIR)
-        all_pos_samples += pos_samples
-        all_neg_samples += neg_samples
+        if frames_counter > INIT_FRAMES_NUM: 
+            pos_samples, neg_samples, pos_bboxs, neg_bboxs = create_sample(frame, bbox, 
+                                                                           POS_SAMPLE_PER_FRAME, 
+                                                                           NEG_SAMPLE_PER_FRAME,
+                                                                           EDGE_SAMPLE_PER_FRAME,
+                                                                           POS_CRITERIR)
+            all_pos_samples += pos_samples
+            all_neg_samples += neg_samples
 
         # Calculate Frames per second (FPS)
         fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer);
@@ -305,7 +306,8 @@ if __name__ == '__main__' :
         cv2.putText(frame, "FPS : " + str(int(fps)), (100,200), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (50,170,50), 5);
  
         # Draw samples
-        frame = draw_samples(frame, pos_bboxs, neg_bboxs)
+        if frames_counter > INIT_FRAMES_NUM: 
+            frame = draw_samples(frame, pos_bboxs, neg_bboxs)
 
         # Display result
         frame_resize = cv2.resize(frame, (500, 500))
@@ -322,5 +324,5 @@ if __name__ == '__main__' :
 
 save_samples(all_pos_samples, all_neg_samples)
 
-print "Finishing... Total image %d, Positive samples: %d, Negative samples: %d" % (frames_counter, len(all_pos_samples), len(all_neg_samples))
+print("Finishing... Total image %d, Positive samples: %d, Negative samples: %d" % (frames_counter, len(all_pos_samples), len(all_neg_samples)))
 video_writer.close()

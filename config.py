@@ -30,7 +30,7 @@ FILE_FORMAT = 0
 # Classifier loading 
 # MLP_MODEL_PATH = "model/mlp_1layer.model"
 # BG_MODEL_PATH  = "model/mlp_bg.model" 
-BG_MODEL_PATH  = "model/mlp-bg-py3.model"
+BG_MODEL_PATH  = "model/mlp-bg-py3-5.model"
 
 # clf = joblib.load(MLP_MODEL_PATH) # MLP_1 for initial bbox detection 
 bg_clf = joblib.load(BG_MODEL_PATH) # MLP_2 for BS detection
@@ -39,10 +39,12 @@ bg_clf = joblib.load(BG_MODEL_PATH) # MLP_2 for BS detection
 #################### Background Substraction Setting ######################
 fgbg_kernel_close_size = 5 # for morphological closing and opening 
 fgbg_kernel_open_size = 5 # for morphological closing and opening 
-history_length = 100 # buffer of history
+history_length = 200 # buffer of history
 fgbg_kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_close_size, fgbg_kernel_close_size))
 fgbg_kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_open_size, fgbg_kernel_open_size))
-fgbg = cv2.bgsegm.createBackgroundSubtractorMOG(history=history_length)
+# fgbg = cv2.bgsegm.createBackgroundSubtractorMOG(history=history_length)
+fgbg = cv2.createBackgroundSubtractorMOG2(history=history_length, detectShadows=False)
+# fgbg = cv2.bgsegm.createBackgroundSubtractorCNT()
 BS_DOWNSAMPLE = 2.5
 HEIGHT_ROI_RATIO = 0.3 # overall ROI starting from [HEIGHT_ROI_RATIO*h : h] in rows
 INIT_FRAMES_NUM = 10 # the number of frames to skip for BS initicalization
@@ -83,9 +85,9 @@ RECORD_SIZE = (912, 912) # Record image size (Don't change)
 VIZ_SIZE = (900, 900) # Visulattion image size (Don't change)
 RECORD_FPS = 15 # frame per second
 
-WRITE_TMP_RESULT = False # if True, will write the result images rather than showing in windows
+WRITE_TMP_RESULT = True # if True, will write the result images rather than showing in windows
 						 # if False, will showing the image in windows
-DEBUG_MODE = True # if True, will show the BS result and localization result;
+DEBUG_MODE = False # if True, will show the BS result and localization result;
 				   # if False, will save the target patches and bounding box
 
 if not WRITE_TMP_RESULT:

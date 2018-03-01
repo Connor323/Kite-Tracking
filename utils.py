@@ -5,6 +5,7 @@ import imageio
 import glob
 import numpy as np
 import signal
+import time
 from skimage.feature import hog
 
 import kcftracker
@@ -101,16 +102,16 @@ def process_bs(image, low_area=10, up_area=1000, return_centroids=False):
 
     # Apply BS 
     fgmask = fgbg.apply(image_resize)
-    
+
     if DEBUG_MODE:
         tmp_show = cv2.resize(fgmask, VIZ_SIZE, cv2.INTER_NEAREST)
         BS_ORIGIN_RECORD[0] = cv2.cvtColor(tmp_show, cv2.COLOR_GRAY2RGB)
 
-    # fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, fgbg_kernel_open) # remove small items 
+    fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, fgbg_kernel_open) # remove small items 
     fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, fgbg_kernel_close) # fill holes
     
     # obtain the regions in range of area (low_area, up_area)
-    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(fgmask.astype(np.uint8), connectivity=8)
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(fgmask.astype(np.uint8), connectivity=4)
     select_labels = np.where((stats[..., -1] > low_area) * \
                              (stats[..., -1] < up_area))[0]
 
@@ -203,9 +204,11 @@ def cropImageFromBS(image, bbox):
     """
     image, centroids = process_bs(image, low_area=MIN_AREA, up_area=MAX_AREA, return_centroids=True)
     if len(centroids) > 0:
-        return centerBoxAndCrop(image, centroids, bbox)
+        patch, ret = centerBoxAndCrop(image, centroids, bbox)
     else:
         return None, True
+
+    return patch, ret
 
 def cropImageAndAnalysis(image, bbox):
     """

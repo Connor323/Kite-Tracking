@@ -150,8 +150,7 @@ class MatchedFilter:
             return MFR, LOC
 
         patch = cropImage(image, bbox)
-        tight_bbox, tight_rect = self.findTightBboxFromBS(bs_patch)
-        if patch is None or tight_bbox is None:
+        if patch is None:
             return None, None
 
         patch = cv2.normalize(patch, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
