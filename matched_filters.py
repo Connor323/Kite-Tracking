@@ -1,12 +1,15 @@
 import cv2
 import threading
 import numpy as np 
+import os
 
 from config import *
 from utils import *
 
 class MatchedFilter:
     def __init__(self, kernel_path):
+        self.kernel_dir = os.path.dirname(kernel_path)
+        self.kernel_idx = int(os.path.basename(kernel_path).split("_")[1].split(".")[0])
         self.kernel = cv2.imread(kernel_path)
         self.kernels, self.angles = self.createMatchedFilterBank(-90)
 
@@ -163,6 +166,20 @@ class MatchedFilter:
         else:
             UPDATE_KERNEL[0] = False
 
+    def saveNewKernel(self):
+        """
+        Save the new kernel in the previous kernel directory
+
+        Params:
+            None
+        Return:
+            None
+        """
+        self.kernel_idx += 1
+        cv2.imwrite(os.path.join(self.kernel_dir, 
+                               "kernel_" + str(self.kernel_idx) + ".bmp"), 
+                  self.kernel)
+
     def applyFilters(self, image, bs_patch, bbox):
         '''
         Given a filter bank, apply them and record maximum response
@@ -201,11 +218,11 @@ class MatchedFilter:
 
             return MFR, LOC
 
-        patch = cropImage(image, bbox)
-        if patch is None:
+        patch_original = cropImage(image, bbox)
+        if patch_original is None:
             return None, None
 
-        patch = cv2.normalize(patch, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        patch = cv2.normalize(patch_original, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         norm_patch = patch - np.mean(patch)
         max_per_MFR, LOC = MFR_MP(norm_patch)
         max_idx_kernel = np.argmax(max_per_MFR) 
@@ -213,13 +230,14 @@ class MatchedFilter:
 
         self.update_kernel_status()
         if UPDATE_KERNEL[0]:
-            print("   -> update kernel")
             tmp_bbox = self.findBboxFromBS(bs_patch)
             if tmp_bbox is not None: 
-                tmp_kernel = cropImage(patch, tmp_bbox)
+                tmp_kernel = cropImage(patch_original, tmp_bbox)
                 if tmp_kernel is not None: 
-                    self.kernel = tmp_kernel
+                    print("   -> update kernel")
+                    self.kernel = tmp_kernel 
                     self.kernels, self.angles = self.createMatchedFilterBank(self.angles[max_idx_kernel])
+                    self.saveNewKernel()
 
         if DEBUG_MODE:
             max_kernel_patch = self.kernels[max_idx_kernel]
