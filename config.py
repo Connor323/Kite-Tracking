@@ -27,6 +27,7 @@ START_FRAME = None # "/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-or
 #       Format 1: 2017-12-15-10-32-8-595.bmp (without "original")
 FILE_FORMAT = 0
 
+
 # Classifier loading 
 # MLP_MODEL_PATH = "model/mlp_1layer.model"
 # BG_MODEL_PATH  = "model/mlp_bg.model" 
