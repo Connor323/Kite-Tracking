@@ -72,6 +72,7 @@ BUFFER_MODE = False # If True, use the descidion buffer for tracking
 NUM_ROTATION = 8 # Number of rotation for creating filter bank
 THRESH_ANGLE_DISTANCE = 100 # The thresholding value for the difference of two angles in degree.
 NUM_THREADS_MFR = 16 # Number of treads for computing MFR
+GAIN = 0.2
 ###########################################################################
 
 ############################# BBOX Setting ################################

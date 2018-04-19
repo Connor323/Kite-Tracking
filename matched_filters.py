@@ -111,6 +111,19 @@ class MatchedFilter:
         """
         return np.min([self.clip_angle(angle1 - angle2), self.clip_angle(angle2 - angle1)])
 
+    def angles_difference(self, angle1, angle2):
+        """
+        Compute the difference between two angles
+
+        Params:     
+            angle1, angle2
+        Return: 
+            angle difference in [-180, 180]
+        """
+        diff = (angle1 - angle2) / 180 * np.pi
+        diff = np.arctan2(np.sin(diff), np.cos(diff))
+        return diff / np.pi * 180
+
     def applyFilters(self, image, bs_patch, bbox):
         '''
         Given a filter bank, apply them and record maximum response
@@ -267,9 +280,10 @@ class MatchedFilter:
 
         if self.angles_distance(angle0, angle1) > THRESH_ANGLE_DISTANCE:
             return prev_angle
+        elif prev_angle is None:
+            return angle1
         else:
-            return angle0
-
+            return self.clip_angle(prev_angle + self.angles_difference(angle1, prev_angle) * GAIN)
 
 
 
