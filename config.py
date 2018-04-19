@@ -13,14 +13,14 @@ tracker_type = tracker_types[2]
 ############################# Data Setting #############################
 # image and template path
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
-# IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
-# IMAGE_PATH = "../images/cloudy0/*.bmp"
-TEMPLATE_PATH = os.path.join(DIR_PATH, "templates/kite0/*.png")
-KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_0.bmp")
-# KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_1.bmp")
+# IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
+IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
 
-START_FRAME = None # "/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-original.bmp" # the path to the start frame name, in case we want to start in the middle of video
+TEMPLATE_PATH = os.path.join(DIR_PATH, "templates/kite0/*.png")
+# KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_0.bmp")
+KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_1.bmp")
+
+START_FRAME = "/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-original.bmp" # the path to the start frame name, in case we want to start in the middle of video
 				   # Set None if we want to stat from beginning. 
 # File format
 # NOTE: Format 0: 2018-1-18-12-49-0-204-original.bmp
@@ -44,6 +44,8 @@ fgbg_kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_cl
 fgbg_kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_open_size, fgbg_kernel_open_size))
 # fgbg = cv2.bgsegm.createBackgroundSubtractorMOG(history=history_length)
 fgbg = cv2.createBackgroundSubtractorMOG2(history=history_length, detectShadows=False)
+BG_MODEL, FG_MODEL = [None], [None]
+UPDATE_BACKGROUND = False
 # fgbg = cv2.bgsegm.createBackgroundSubtractorCNT()
 BS_DOWNSAMPLE = 2.5
 HEIGHT_ROI_RATIO = 0.3 # overall ROI starting from [HEIGHT_ROI_RATIO*h : h] in rows
@@ -85,9 +87,9 @@ RECORD_SIZE = (912, 912) # Record image size (Don't change)
 VIZ_SIZE = (900, 900) # Visulattion image size (Don't change)
 RECORD_FPS = 15 # frame per second
 
-WRITE_TMP_RESULT = True # if True, will write the result images rather than showing in windows
+WRITE_TMP_RESULT = False # if True, will write the result images rather than showing in windows
 						 # if False, will showing the image in windows
-DEBUG_MODE = False # if True, will show the BS result and localization result;
+DEBUG_MODE = True # if True, will show the BS result and localization result;
 				   # if False, will save the target patches and bounding box
 
 if not WRITE_TMP_RESULT:

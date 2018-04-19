@@ -101,7 +101,10 @@ def process_bs(image, low_area=10, up_area=1000, return_centroids=False):
     image_resize = image_resize[ROI_Y:]
 
     # Apply BS 
-    fgmask = fgbg.apply(image_resize)
+    if BG_MODEL[0] is not None:
+        fgmask = fgbg.apply(image_resize, BG_MODEL[0])
+    else:
+        fgmask = fgbg.apply(image_resize)
 
     if DEBUG_MODE:
         tmp_show = cv2.resize(fgmask, VIZ_SIZE, cv2.INTER_NEAREST)
@@ -123,6 +126,7 @@ def process_bs(image, low_area=10, up_area=1000, return_centroids=False):
         tmp[labels == select_label] = 255
     tmp_labels[ROI_Y:] = tmp
     final_labels = cv2.resize(tmp_labels, (w, h), cv2.INTER_NEAREST)
+    FG_MODEL[0] = tmp
 
     if DEBUG_MODE:
         tmp_show = cv2.resize(tmp_labels, VIZ_SIZE, cv2.INTER_NEAREST)
@@ -210,6 +214,22 @@ def cropImageFromBS(image, bbox):
 
     return patch, ret
 
+def updateBG():
+    """
+    Update background model for BS
+
+    Params: 
+        None
+    return:
+        None
+    """
+    if BG_MODEL[0] is None: 
+        BG_MODEL[0] = fgbg.getBackgroundImage()
+    else:     
+        if FG_MODEL[0] is not None:
+            newBG = fgbg.getBackgroundImage()
+            BG_MODEL[0][FG_MODEL[0] == 0] = newBG[FG_MODEL[0] == 0]
+
 def cropImageAndAnalysis(image, bbox):
     """
     Determine if the current patch contains target
@@ -221,6 +241,9 @@ def cropImageAndAnalysis(image, bbox):
         if the current tracking is successful (boolean)
         image patch from BS result
     """
+    if UPDATE_BACKGROUND: 
+        updateBG()
+
     patch, ret = cropImageFromBS(image, bbox)
     if patch is None or ret: # crop image size is incorrect (near the edge)
         return False, patch
