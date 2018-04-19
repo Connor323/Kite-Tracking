@@ -100,6 +100,29 @@ class MatchedFilter:
         bbox = cv2.boxPoints(rect)
         return bbox, rect
 
+    def findBboxFromBS(self, bs_patch):
+        """
+        Find the bbox from the BS binary image
+
+        Params:
+            bs_patch: the binary image patch/image from BS result
+        Return:
+            bbox
+        """
+        _, contours, hierarchy = cv2.findContours(bs_patch, 1, 2)
+        max_area = 0
+        select_cnt = None
+        for cnt in contours:
+            M = cv2.moments(cnt)
+            if M["m00"] > max_area:
+                select_cnt = cnt
+                max_area = M["m00"]
+        if select_cnt is None:
+            return None
+        else:
+            x,y,w,h = cv2.boundingRect(select_cnt)
+            return np.array([x,y,w,h])
+
     def angles_distance(self, angle1, angle2):
         """
         Compute the distance between two angles
@@ -123,6 +146,22 @@ class MatchedFilter:
         diff = (angle1 - angle2) / 180 * np.pi
         diff = np.arctan2(np.sin(diff), np.cos(diff))
         return diff / np.pi * 180
+
+    @staticmethod
+    def update_kernel_status():
+        """
+        Obtian the current update_kernel status from keyboard
+
+        Params:
+            None
+        Return:
+            None
+        """
+        k = cv2.waitKey(1)
+        if k == ord('a'):
+            UPDATE_KERNEL[0] = True
+        else:
+            UPDATE_KERNEL[0] = False
 
     def applyFilters(self, image, bs_patch, bbox):
         '''
@@ -171,6 +210,16 @@ class MatchedFilter:
         max_per_MFR, LOC = MFR_MP(norm_patch)
         max_idx_kernel = np.argmax(max_per_MFR) 
         max_location = LOC[max_idx_kernel]
+
+        self.update_kernel_status()
+        if UPDATE_KERNEL[0]:
+            print("   -> update kernel")
+            tmp_bbox = self.findBboxFromBS(bs_patch)
+            if tmp_bbox is not None: 
+                tmp_kernel = cropImage(patch, tmp_bbox)
+                if tmp_kernel is not None: 
+                    self.kernel = tmp_kernel
+                    self.kernels, self.angles = self.createMatchedFilterBank(self.angles[max_idx_kernel])
 
         if DEBUG_MODE:
             max_kernel_patch = self.kernels[max_idx_kernel]
