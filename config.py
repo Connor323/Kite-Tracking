@@ -45,7 +45,7 @@ fgbg_kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_ope
 # fgbg = cv2.bgsegm.createBackgroundSubtractorMOG(history=history_length)
 fgbg = cv2.createBackgroundSubtractorMOG2(history=history_length, detectShadows=False)
 BG_MODEL, FG_MODEL = [None], [None]
-UPDATE_BACKGROUND = False
+UPDATE_BACKGROUND = True
 # fgbg = cv2.bgsegm.createBackgroundSubtractorCNT()
 BS_DOWNSAMPLE = 2.5
 HEIGHT_ROI_RATIO = 0.3 # overall ROI starting from [HEIGHT_ROI_RATIO*h : h] in rows
