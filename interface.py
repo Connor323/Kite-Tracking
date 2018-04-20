@@ -6,17 +6,23 @@ import glob
 import copy
 import time
 import numpy as np
+import threading
 
 from MLP import MLP_Detection_MP
 from video import Video
 from matched_filters import MatchedFilter
 from utils import * 
 from config import *
+from bs import BS
 
 class Interface:
     def __init__(self, init_bbox=None):
         # Set up tracker.
         self.tracker = creat_tracker(tracker_type)
+        # Set up BS
+        self.bs = BS()
+        t = threading.Thread(target=self.bs.run)
+        t.start()
         # Set up Matched Filter
         self.MF = MatchedFilter(KERNEL_PATH)
         # Initialize variables
@@ -39,9 +45,10 @@ class Interface:
         if init_bbox is None:
             for frame in frames[:-1]:
                 self.frame_num += 1
-                MLP_Detection_MP(frame, init_detection=True)
+                self.bs.set_info(frame, [0, 0, BBOX_SIZE[0], BBOX_SIZE[1]])
+                time.sleep(0.05)
             self.frame_num += 1
-            init_bbox, bs_patch = MLP_Detection_MP(frames[-1], init_detection=False)
+            init_bbox, bs_patch = MLP_Detection_MP(frames[-1], self.bs.get_binary_result(), self.bs.get_centroids())
             # Stop if both methods failed
             if init_bbox is None:
                 raise ValueError("Initial Tracking Failed!!!")
@@ -69,6 +76,7 @@ class Interface:
         self.frame_num += 1
         angle = None
         frame_original = frame.copy() # make a copy for result saving
+        self.bs.set_frame(frame_original)
  
         # Update tracker
         t_start = time.time()
@@ -85,7 +93,8 @@ class Interface:
         if ok:
             # Crop patch and analysis using histogram
             t_start = time.time()
-            ok, bs_patch = cropImageAndAnalysis(frame, bbox)
+            ok, bs_patch = self.bs.get_info()
+            # ok, bs_patch = cropImageAndAnalysis(frame, bbox)
             if verbose:
                 print ("post tracking: ", time.time() - t_start)
 
@@ -96,7 +105,7 @@ class Interface:
         if not ok:
             # Tracking failure
             t_start = time.time()
-            bbox, bs_patch = MLP_Detection_MP(frame, init_detection=False)
+            bbox, bs_patch = MLP_Detection_MP(frame, self.bs.get_binary_result(), self.bs.get_centroids())
             if bbox is None:
                 if verbose:
                     print("   !!! -> Tracking Failed! Skip current frame...")
@@ -111,6 +120,8 @@ class Interface:
             self.tracker.init(frame, bbox)
             if verbose:
                 print ("MLP: ", time.time() - t_start )
+        # update BS info
+        self.bs.set_info(frame_original, bbox)
  
         # Apply matched filter to compute the angle of target
         t_start = time.time()
