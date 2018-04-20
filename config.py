@@ -53,7 +53,7 @@ HEIGHT_ROI_RATIO = 0.3 # overall ROI starting from [HEIGHT_ROI_RATIO*h : h] in r
 INIT_FRAMES_NUM = 10 # the number of frames to skip for BS initicalization
 
 # BS post-process setting
-MIN_AREA = 10 # minimum area inside bbox for BS
+MIN_AREA = 0 # minimum area inside bbox for BS
 MAX_AREA = 600 # maximum area inside bbox for BS
 ###########################################################################
     
@@ -61,10 +61,10 @@ MAX_AREA = 600 # maximum area inside bbox for BS
 PROB_CRITERIA = 0.50 # The prob_thresh value for MLP_2
 NUM_THREADS_TRACKING = 16 # Multi-thread boost setting 
 
-TRACKING_CRITERIA_AREA = 10 # minimum area inside bbox for tracking
-RECENTER_THRESH = 10 # Max distance allowed from the centroid to the center of bbox
+TRACKING_CRITERIA_AREA = 0 # minimum area inside bbox for tracking
+RECENTER_THRESH = 15 # Max distance allowed from the centroid to the center of bbox
 
-DECISION_BUFFER_SIZE = 3 # Decision buffer size
+DECISION_BUFFER_SIZE = 5 # Decision buffer size
 DECISION_BUFFER = [] # Decision buffer
 BUFFER_MODE = False # If True, use the descidion buffer for tracking
 ###########################################################################
@@ -72,8 +72,8 @@ BUFFER_MODE = False # If True, use the descidion buffer for tracking
 ######################### Matched Filter Setting ##########################
 NUM_ROTATION = 8 # Number of rotation for creating filter bank
 THRESH_ANGLE_DISTANCE = 100 # The thresholding value for the difference of two angles in degree.
-NUM_THREADS_MFR = 16 # Number of treads for computing MFR
-GAIN = 0.2
+NUM_THREADS_MFR = 24 # Number of treads for computing MFR
+GAIN = 0.2	
 UPDATE_KERNEL = [False] # enable (set to True) by holding keyboard key "a" when any cv window opens 
 ###########################################################################
 

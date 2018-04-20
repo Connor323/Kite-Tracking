@@ -90,7 +90,7 @@ class Interface:
                 print ("post tracking: ", time.time() - t_start)
 
         # Use decision buffer to make final decision.
-        ok = pushBuffer(ok)
+        # ok = pushBuffer(ok)
  
         # Draw bounding box
         if not ok:

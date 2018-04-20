@@ -135,7 +135,10 @@ class MatchedFilter:
         Return: 
             angle distance in [0, 360)
         """
-        return np.min([self.clip_angle(angle1 - angle2), self.clip_angle(angle2 - angle1)])
+        diff = (angle1 - angle2) / 180 * np.pi
+        diff = np.arctan2(np.sin(diff), np.cos(diff))
+        return abs(diff / np.pi * 180)
+        # return np.min([self.clip_angle(angle1 - angle2), self.clip_angle(angle2 - angle1)])
 
     def angles_difference(self, angle1, angle2):
         """
