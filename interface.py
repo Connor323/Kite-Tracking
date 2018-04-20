@@ -7,6 +7,7 @@ import copy
 import time
 import numpy as np
 import threading
+import signal
 
 from MLP import MLP_Detection_MP
 from video import Video
@@ -30,6 +31,8 @@ class Interface:
         self.init_bbox = None
         self.frame_num = -1
         self.fps = []
+        # Create handler when press Ctrl + C
+        signal.signal(signal.SIGINT, signal_handler)
 
     def init_tracker(self, frames, init_bbox=None):
         """

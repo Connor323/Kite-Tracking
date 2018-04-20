@@ -55,6 +55,9 @@ INIT_FRAMES_NUM = 10 # the number of frames to skip for BS initicalization
 # BS post-process setting
 MIN_AREA = 0 # minimum area inside bbox for BS
 MAX_AREA = 600 # maximum area inside bbox for BS
+
+# Thread settting
+KILL_BS = [False]
 ###########################################################################
     
 ############################# Tracking Setting ############################

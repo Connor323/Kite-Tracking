@@ -23,6 +23,7 @@ def signal_handler(signal, frame):
     if not DEBUG_MODE:
         print("Bounding box saves to {}".format(TARGET_BOX))
         BBOX_FILE.close()
+    KILL_BS[0] = True
     sys.exit(0)
 
 def pushBuffer(res):

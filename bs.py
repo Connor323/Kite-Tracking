@@ -207,6 +207,8 @@ class BS:
         while True:
             self.cropImageAndAnalysis()
             self.new_frame = False
+            if KILL_BS[0]:
+                break
 
     def set_info(self, image, bbox):
         """
