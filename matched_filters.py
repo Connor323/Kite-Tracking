@@ -133,7 +133,7 @@ class MatchedFilter:
         Params:     
             angle1, angle2
         Return: 
-            angle distance in [0, 360)
+            angle distance in [0, 180)
         """
         diff = (angle1 - angle2) / 180 * np.pi
         diff = np.arctan2(np.sin(diff), np.cos(diff))

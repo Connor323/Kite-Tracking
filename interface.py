@@ -49,7 +49,7 @@ class Interface:
             for frame in frames[:-1]:
                 self.frame_num += 1
                 self.bs.set_info(frame, [0, 0, BBOX_SIZE[0], BBOX_SIZE[1]])
-                time.sleep(0.05)
+                time.sleep(0.1)
             self.frame_num += 1
             init_bbox, bs_patch = MLP_Detection_MP(frames[-1], self.bs.get_binary_result(), self.bs.get_centroids())
             # Stop if both methods failed
@@ -102,7 +102,7 @@ class Interface:
                 print ("post tracking: ", time.time() - t_start)
 
         # Use decision buffer to make final decision.
-        # ok = pushBuffer(ok)
+        ok = pushBuffer(ok)
  
         # Draw bounding box
         if not ok:
@@ -137,12 +137,11 @@ class Interface:
                 if angle is not None:
                     self.prev_angle = angle
                 else:
-                    return False, bbox, None, center_loc, None
+                    return False, None, None, None, None
             else:
-                center_loc = (np.array(center_loc) + np.array(bbox[:2])).astype(int)
-                return False, bbox, None, center_loc, None
+                return False, None, None, None, None
         else:
-            return False, bbox, None, None, None
+            return False, None, None, None, None
 
         if verbose:
             print ("Angle: ", time.time() - t_start )

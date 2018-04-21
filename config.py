@@ -13,14 +13,14 @@ tracker_type = tracker_types[2]
 ############################# Data Setting #############################
 # image and template path
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
-# IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
+# IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
+IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
 
 TEMPLATE_PATH = os.path.join(DIR_PATH, "templates/kite0/*.png")
-KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_0.bmp")
-# KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_1.bmp")
+# KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_0.bmp")
+KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_1.bmp")
 
-START_FRAME = None # "/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-original.bmp" # the path to the start frame name, in case we want to start in the middle of video
+START_FRAME = "/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-original.bmp" # the path to the start frame name, in case we want to start in the middle of video
 				   # Set None if we want to stat from beginning. 
 # File format
 # NOTE: Format 0: 2018-1-18-12-49-0-204-original.bmp
@@ -40,7 +40,7 @@ bg_clf = joblib.load(BG_MODEL_PATH) # MLP_2 for BS detection
 #################### Background Substraction Setting ######################
 fgbg_kernel_close_size = 5 # for morphological closing and opening 
 fgbg_kernel_open_size = 5 # for morphological closing and opening 
-history_length = 200 # buffer of history
+history_length = 300 # buffer of history
 fgbg_kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_close_size, fgbg_kernel_close_size))
 fgbg_kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_open_size, fgbg_kernel_open_size))
 # fgbg = cv2.bgsegm.createBackgroundSubtractorMOG(history=history_length)
@@ -62,21 +62,21 @@ KILL_BS = [False]
     
 ############################# Tracking Setting ############################
 PROB_CRITERIA = 0.50 # The prob_thresh value for MLP_2
-NUM_THREADS_TRACKING = 16 # Multi-thread boost setting 
+NUM_THREADS_TRACKING = 24 # Multi-thread boost setting 
 
 TRACKING_CRITERIA_AREA = 0 # minimum area inside bbox for tracking
 RECENTER_THRESH = 15 # Max distance allowed from the centroid to the center of bbox
 
-DECISION_BUFFER_SIZE = 5 # Decision buffer size
+DECISION_BUFFER_SIZE = 3 # Decision buffer size
 DECISION_BUFFER = [] # Decision buffer
 BUFFER_MODE = False # If True, use the descidion buffer for tracking
 ###########################################################################
 
 ######################### Matched Filter Setting ##########################
 NUM_ROTATION = 8 # Number of rotation for creating filter bank
-THRESH_ANGLE_DISTANCE = 100 # The thresholding value for the difference of two angles in degree.
+THRESH_ANGLE_DISTANCE = 90 # The thresholding value for the difference of two angles in degree.
 NUM_THREADS_MFR = 24 # Number of treads for computing MFR
-GAIN = 0.2	
+GAIN = 0.8	
 UPDATE_KERNEL = [False] # enable (set to True) by holding keyboard key "a" when any cv window opens 
 ###########################################################################
 

@@ -61,7 +61,7 @@ if __name__ == '__main__' :
     if init_bbox is None:
         for _ in range(INIT_FRAMES_NUM):
             bs.set_info(frame, [0, 0, BBOX_SIZE[0], BBOX_SIZE[1]])
-            time.sleep(0.05)
+            time.sleep(0.1)
             # Read first frame.
             ok, frame = video.read()
             if not ok:
