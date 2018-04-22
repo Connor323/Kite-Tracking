@@ -22,8 +22,9 @@ class Interface:
         self.tracker = creat_tracker(tracker_type)
         # Set up BS
         self.bs = BS()
-        t = threading.Thread(target=self.bs.run)
-        t.start()
+        self.t = threading.Thread(target=self.bs.run)
+        self.t.setDaemon(True)
+        self.t.start()
         # Set up Matched Filter
         self.MF = MatchedFilter(KERNEL_PATH)
         # Initialize variables
@@ -32,7 +33,7 @@ class Interface:
         self.frame_num = -1
         self.fps = []
         # Create handler when press Ctrl + C
-        signal.signal(signal.SIGINT, signal_handler)
+        # signal.signal(signal.SIGINT, signal_handler)
 
     def init_tracker(self, frames, init_bbox=None):
         """
@@ -54,7 +55,9 @@ class Interface:
             init_bbox, bs_patch = MLP_Detection_MP(frames[-1], self.bs.get_binary_result(), self.bs.get_centroids())
             # Stop if both methods failed
             if init_bbox is None:
-                raise ValueError("Initial Tracking Failed!!!")
+                # raise ValueError("Initial Tracking Failed!!!")
+                print("Initial Tracking Failed!!!")
+                init_bbox=[0,0,51,51]
             self.init_bbox = copy.copy(init_bbox)
 
         # Initialize tracker with first frame and bounding box
