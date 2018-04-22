@@ -23,7 +23,7 @@ class Interface:
         # Set up BS
         self.bs = BS()
         self.t = threading.Thread(target=self.bs.run)
-        self.t.setDaemon(True)
+        # self.t.setDaemon(True)
         self.t.start()
         # Set up Matched Filter
         self.MF = MatchedFilter(KERNEL_PATH)
