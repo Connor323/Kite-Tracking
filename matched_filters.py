@@ -11,7 +11,31 @@ class MatchedFilter:
         self.kernel_dir = os.path.dirname(kernel_path)
         self.kernel_idx = int(os.path.basename(kernel_path).split("_")[1].split(".")[0])
         self.kernel = cv2.imread(kernel_path)
+        self.kernel_angle = 0.
         self.kernels, self.angles = self.createMatchedFilterBank(-90)
+
+    def rotate_bound(self, image, angle):
+        # grab the dimensions of the image and then determine the
+        (h, w) = image.shape[:2]
+        (cX, cY) = (w // 2, h // 2)
+
+        # grab the rotation matrix (applying the negative of the
+        # angle to rotate clockwise), then grab the sine and cosine
+        # (i.e., the rotation components of the matrix)
+        M = cv2.getRotationMatrix2D((cX, cY), -angle, 1.0)
+        cos = np.abs(M[0, 0])
+        sin = np.abs(M[0, 1])
+
+        # compute the new bounding dimensions of the image
+        nW = int((h * sin) + (w * cos))
+        nH = int((h * cos) + (w * sin))
+
+        # adjust the rotation matrix to take into account translation
+        M[0, 2] += (nW // 2) - cX
+        M[1, 2] += (nH // 2) - cY
+
+        # perform the actual rotation and return the image
+        return cv2.warpAffine(image, M, (nW, nH), borderMode=cv2.BORDER_CONSTANT, borderValue=0)
 
     def createMatchedFilterBank(self, init_angle=0, prev_kernels=None, prev_angles=None):
         '''
@@ -25,29 +49,6 @@ class MatchedFilter:
             kernels: [[kernel_0, kernel_1, ...], [kernel_0, kernel_1, ...]]
             angles: [a0, a1, ...]
         '''
-        def rotate_bound(image, angle):
-            # grab the dimensions of the image and then determine the
-            (h, w) = image.shape[:2]
-            (cX, cY) = (w // 2, h // 2)
-
-            # grab the rotation matrix (applying the negative of the
-            # angle to rotate clockwise), then grab the sine and cosine
-            # (i.e., the rotation components of the matrix)
-            M = cv2.getRotationMatrix2D((cX, cY), -angle, 1.0)
-            cos = np.abs(M[0, 0])
-            sin = np.abs(M[0, 1])
-
-            # compute the new bounding dimensions of the image
-            nW = int((h * sin) + (w * cos))
-            nH = int((h * cos) + (w * sin))
-
-            # adjust the rotation matrix to take into account translation
-            M[0, 2] += (nW // 2) - cX
-            M[1, 2] += (nH // 2) - cY
-
-            # perform the actual rotation and return the image
-            return cv2.warpAffine(image, M, (nW, nH), borderMode=cv2.BORDER_CONSTANT, borderValue=0)
-
         K = self.kernel.copy()
         K = cv2.normalize(K, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         K -= np.mean(K)
@@ -59,7 +60,7 @@ class MatchedFilter:
             kernels, angles = [], []
 
         for i in range(NUM_ROTATION):
-            k = rotate_bound(K.copy(), cur_rot)
+            k = self.rotate_bound(K.copy(), cur_rot)
             k -= np.mean(k)
             kernels.append(k)
             angles.append(self.clip_angle(cur_rot + init_angle))
@@ -179,9 +180,10 @@ class MatchedFilter:
             None
         """
         self.kernel_idx += 1
+        kernel = self.rotate_bound(self.kernel, -self.kernel_angle - 90)
         cv2.imwrite(os.path.join(self.kernel_dir, 
                                "kernel_" + str(self.kernel_idx) + ".bmp"), 
-                  self.kernel)
+                    kernel)
 
     def applyFilters(self, image, bs_patch, bbox):
         '''
@@ -230,17 +232,6 @@ class MatchedFilter:
         max_per_MFR, LOC = MFR_MP(norm_patch)
         max_idx_kernel = np.argmax(max_per_MFR) 
         max_location = LOC[max_idx_kernel]
-
-        self.update_kernel_status()
-        if UPDATE_KERNEL[0]:
-            tmp_bbox = self.findBboxFromBS(bs_patch)
-            if tmp_bbox is not None: 
-                tmp_kernel = cropImage(patch_original, tmp_bbox)
-                if tmp_kernel is not None: 
-                    print("   -> update kernel")
-                    self.kernel = tmp_kernel 
-                    self.kernels, self.angles = self.createMatchedFilterBank(self.angles[max_idx_kernel])
-                    self.saveNewKernel()
 
         if DEBUG_MODE:
             max_kernel_patch = self.kernels[max_idx_kernel]
@@ -312,6 +303,17 @@ class MatchedFilter:
 
             return self.clip_angle(selected_angle + angle)
 
+        def final_process(angle0, angle1):
+            if self.angles_distance(angle0, angle1) > THRESH_ANGLE_DISTANCE:
+                return prev_angle
+            elif prev_angle is None:
+                return angle1
+            else:
+                return self.clip_angle(prev_angle + self.angles_difference(angle1, prev_angle) * GAIN)
+
+        patch_original = cropImage(image, bbox)
+        if patch_original is None:
+            return None, None
 
         tight_bbox, tight_rect = self.findTightBboxFromBS(bs_patch)
         if tight_bbox is None:
@@ -347,13 +349,22 @@ class MatchedFilter:
             return None
         patch = cv2.cvtColor(patch, cv2.COLOR_BGR2HSV)
         angle1 = self.clip_angle(refineAngle(patch, tight_bbox, tight_rect, max_loc))
+        final_angle = final_process(angle0, angle1)
 
-        if self.angles_distance(angle0, angle1) > THRESH_ANGLE_DISTANCE:
-            return prev_angle
-        elif prev_angle is None:
-            return angle1
-        else:
-            return self.clip_angle(prev_angle + self.angles_difference(angle1, prev_angle) * GAIN)
+        self.update_kernel_status()
+        if UPDATE_KERNEL[0]:
+            tmp_bbox = self.findBboxFromBS(bs_patch)
+            if tmp_bbox is not None: 
+                tmp_kernel = cropImage(patch_original, tmp_bbox)
+                if tmp_kernel is not None: 
+                    print("   -> update kernel")
+                    self.kernel = tmp_kernel 
+                    self.kernel_angle = final_angle
+                    self.kernels, self.angles = self.createMatchedFilterBank(final_angle)
+                    self.saveNewKernel()
+
+        return final_angle
+        
 
 
 
