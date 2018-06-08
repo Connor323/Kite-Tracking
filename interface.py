@@ -32,6 +32,7 @@ class Interface:
         self.init_bbox = None
         self.frame_num = -1
         self.fps = []
+        self.cnn_pred = None
         # Create handler when press Ctrl + C
         # signal.signal(signal.SIGINT, signal_handler)
 
@@ -115,7 +116,6 @@ class Interface:
             if bbox is None:
                 if verbose:
                     print("   !!! -> Tracking Failed! Skip current frame...")
-                self.prev_angle = None
                 return False, None, None, None, None
 
             # Reinitialize tracker
@@ -145,6 +145,7 @@ class Interface:
                 return False, None, None, None, None
         else:
             return False, None, None, None, None
+        self.cnn_pred = self.MF.cnn_pred
 
         if verbose:
             print ("Angle: ", time.time() - t_start )
@@ -199,6 +200,7 @@ if __name__ == "__main__":
     while True:
         # Read one frame
         ok, frame = video.read()
+        frame_original = frame.copy()
         if not ok:
             print('Cannot read video file')
             sys.exit()
@@ -206,15 +208,19 @@ if __name__ == "__main__":
         # Obtain results
         ok, bbox, angle, center_loc, fps = tracker.update(frame, verbose=False)
         if ok:
-            print("bbox: {:4d} {:4d} {:3d} {:3d}  | fps: {:3d}  |  anlge: {:3d}  |  center: {:4d} {:4d}".format(
-                                                                                   int(bbox[0]), int(bbox[1]), 
-                                                                                   int(bbox[2]), int(bbox[3]),
-                                                                                   int(fps),
-                                                                                   int(angle),
-                                                                                   center_loc[0], center_loc[1])) 
+            cnn_pred = tracker.cnn_pred
+            print("Frame: {:5d} | bbox: {:4d} {:4d} {:3d} {:3d}  | fps: {:3d}  |  anlge: {:3d}  |  CNN predict: {}".format(
+                                                    video.getFrameIdx(), 
+                                                    int(bbox[0]), int(bbox[1]), 
+                                                    int(bbox[2]), int(bbox[3]),
+                                                    int(fps),
+                                                    int(angle),
+                                                    cnn_pred)) 
             drawBox(frame, bbox)
-            drawAnlge(frame, angle, bbox)
+            drawAnlge(frame, angle, center_loc)
             drawPoint(frame, center_loc)
+            if CREATE_SAMPLES:
+                savePatchPerAngle(frame_original, angle, bbox)
             frame_resize = cv2.resize(frame, (512, 512))
             cv2.imshow("frame", frame_resize)
             cv2.waitKey(1)

@@ -149,7 +149,8 @@ if __name__ == '__main__' :
             if kernel_angle_idx is not None:
                 angle = MF.getTargetAngle(kernel_angle_idx, bs_patch, frame_original.copy(), loc, bbox, prev_angle)
                 if angle is not None:
-                    drawAnlge(frame, angle, bbox)
+                    loc = (np.array(loc) + np.array(bbox[:2])).astype(int)
+                    drawAnlge(frame, angle, loc)
                     prev_angle = angle
                     angle = int(angle)
 

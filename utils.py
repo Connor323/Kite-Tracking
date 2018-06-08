@@ -238,21 +238,19 @@ def displayFrame(frame, frame_original, bbox, angle, video):
 
     return frame_resize
 
-def drawAnlge(frame, angle, bbox, length=25):
+def drawAnlge(frame, angle, center, length=25):
     """
     Draw angle axis.
 
     Params:
         frame: current image
         angle: float value
-        bbox: bounding box
+        center: centroid
         length: length of axis
     Return:
         Painted image
     """
-    bbox = np.array(bbox).astype(int)
-    center = tuple(bbox[:2] + bbox[2:] // 2)
-
+    center = tuple(center)
     radian = angle / 180 * np.pi
     vertice = (int(center[0] + np.cos(radian)*length), int(center[1] + np.sin(radian)*length))
     cv2.line(frame, center, vertice, (0, 0, 255), 5)
@@ -260,4 +258,15 @@ def drawAnlge(frame, angle, bbox, length=25):
 
 def drawPoint(frame, point, color=(255, 0, 255), radius=10):
     return cv2.circle(frame, tuple(point), radius, color, -1)
+
+def savePatchPerAngle(frame, angle, bbox):
+    division = 360 / NUM_DIVISION_SAMPLES
+    angle_idx = int(np.round(angle / division, 0)) % NUM_DIVISION_SAMPLES
+    DIR = os.path.join(RESULT_BASE, "angle_%d" % angle_idx)
+    DIR_tmp = os.path.join(RESULT_BASE, "angle")
+    img = cropImage(frame, bbox)
+    cv2.imwrite(os.path.join(DIR, "image_%05d.png" % SAMPLE_COUNTER[angle_idx]), img)
+    cv2.imwrite(os.path.join(DIR_tmp, "image_%05d.png" % SAMPLE_COUNTER[-1]), img)
+    SAMPLE_COUNTER[angle_idx] += 1
+    SAMPLE_COUNTER[-1] += 1
 

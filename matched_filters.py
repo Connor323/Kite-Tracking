@@ -13,6 +13,7 @@ class MatchedFilter:
         self.kernel = cv2.imread(kernel_path)
         self.kernel_angle = 0.
         self.kernels, self.angles = self.createMatchedFilterBank(-90)
+        self.cnn_pred = None
 
     def rotate_bound(self, image, angle):
         # grab the dimensions of the image and then determine the
@@ -305,11 +306,26 @@ class MatchedFilter:
 
         def final_process(angle0, angle1):
             if self.angles_distance(angle0, angle1) > THRESH_ANGLE_DISTANCE:
-                return prev_angle
+                if prev_angle is not None: 
+                    if self.angles_distance(angle0, prev_angle) > \
+                            self.angles_distance(angle1, prev_angle):
+                        return angle1
+                    else:
+                        return angle0
+                else:
+                    return angle1
             elif prev_angle is None:
                 return angle1
             else:
                 return self.clip_angle(prev_angle + self.angles_difference(angle1, prev_angle) * GAIN)
+
+        def pred_angle(patch):
+            def preprocess(image):
+                image = image / 255
+                image -= image.mean()
+                return image
+            prob = ANGLE_MODEL.predict(np.array([preprocess(patch)]))[0]
+            return np.argmax(prob) * 360 / NUM_DIVISION_SAMPLES
 
         patch_original = cropImage(image, bbox)
         if patch_original is None:
@@ -343,27 +359,35 @@ class MatchedFilter:
         else:
             angle0 = origin_angle
 
-        patch = cropImage(image, bbox)
-        patch[bs_patch == 0] = 0
-        if patch is None:
-            return None
-        patch = cv2.cvtColor(patch, cv2.COLOR_BGR2HSV)
-        angle1 = self.clip_angle(refineAngle(patch, tight_bbox, tight_rect, max_loc))
-        final_angle = final_process(angle0, angle1)
+        if USE_CNN:
+            self.cnn_pred = pred_angle(patch_original.copy())
+            if self.angles_distance(angle0, self.cnn_pred) > 360*3/8 and \
+                prev_angle is not None:
+                print("-----> Angle Detection Conflict! Use the previous angle")
+                return self.clip_angle(angle0 + 180)
+            else:
+                return angle0
+        else:
+            patch = cropImage(image, bbox)
+            patch[bs_patch == 0] = 0
+            if patch is None:
+                return None
+            patch = cv2.cvtColor(patch, cv2.COLOR_BGR2HSV)
+            angle1 = self.clip_angle(refineAngle(patch, tight_bbox, tight_rect, max_loc))
+            final_angle = final_process(angle0, angle1)
 
-        self.update_kernel_status()
-        if UPDATE_KERNEL[0]:
-            tmp_bbox = self.findBboxFromBS(bs_patch)
-            if tmp_bbox is not None: 
-                tmp_kernel = cropImage(patch_original, tmp_bbox)
-                if tmp_kernel is not None: 
-                    print("   -> update kernel")
-                    self.kernel = tmp_kernel 
-                    self.kernel_angle = final_angle
-                    self.kernels, self.angles = self.createMatchedFilterBank(final_angle)
-                    self.saveNewKernel()
-
-        return final_angle
+            self.update_kernel_status()
+            if UPDATE_KERNEL[0]:
+                tmp_bbox = self.findBboxFromBS(bs_patch)
+                if tmp_bbox is not None: 
+                    tmp_kernel = cropImage(patch_original.copy(), tmp_bbox)
+                    if tmp_kernel is not None: 
+                        print("   -> update kernel")
+                        self.kernel = tmp_kernel 
+                        self.kernel_angle = final_angle
+                        self.kernels, self.angles = self.createMatchedFilterBank(final_angle)
+                        self.saveNewKernel()
+            return final_angle
         
 
 
