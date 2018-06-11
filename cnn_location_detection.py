@@ -12,8 +12,8 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras.optimizers import SGD
 from keras.metrics import categorical_accuracy 
 
-NUM_PER_CLASS_TRAIN = 500
-NUM_PER_CLASS_TEST = 200
+NUM_PER_CLASS_TRAIN = 2000
+NUM_PER_CLASS_TEST = 500
 DATA_RATIO = 0.8 # train / total
 IMAGE_SIZE = (51, 51)	
 RETRATIN = False

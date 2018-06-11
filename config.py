@@ -26,7 +26,8 @@ TEMPLATE_PATH = os.path.join(DIR_PATH, "templates/kite0/*.png")
 KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_2.bmp")
 
 # START_FRAME = None
-START_FRAME = "/Users/hanxiang/Dropbox/20180603/2018-6-3-15-27-3-275-original.bmp" 
+# START_FRAME = "/Users/hanxiang/Dropbox/20180603/2018-6-3-15-24-5-366-original.bmp" # train
+START_FRAME = "/Users/hanxiang/Dropbox/20180603/2018-6-3-15-27-3-275-original.bmp" # test
 # START_FRAME = "/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-original.bmp" # the path to the start frame name, in case we want to start in the middle of video
 				   # Set None if we want to stat from beginning. 
 # File format
@@ -38,14 +39,14 @@ FILE_FORMAT = 0
 # Classifier loading 
 # MLP_MODEL_PATH = "model/mlp_1layer.model"
 # BG_MODEL_PATH  = "model/mlp_bg.model" 
-BG_MODEL_PATH  = "model/mlp-bg-py3-5.model"
-# BG_MODEL_PATH  = "model/cnn_loc_model.h5"
+# BG_MODEL_PATH  = "model/mlp-bg-py3-5.model"
+BG_MODEL_PATH  = "model/cnn_loc_model.h5"
 ANGLE_MODEL_PATH  = "model/cnn_model-8d.h5"
 
 # clf = joblib.load(MLP_MODEL_PATH) # MLP_1 for initial bbox detection 
 ANGLE_MODEL = load_model(ANGLE_MODEL_PATH) 
-# bg_clf = load_model(BG_MODEL_PATH) 
-bg_clf = joblib.load(BG_MODEL_PATH) # MLP_2 for BS detection
+bg_clf = load_model(BG_MODEL_PATH) 
+# bg_clf = joblib.load(BG_MODEL_PATH) # MLP_2 for BS detection
 ###########################################################################
 
 #################### Background Substraction Setting ######################

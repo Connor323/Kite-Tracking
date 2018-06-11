@@ -34,6 +34,11 @@ def MLP_Detection_MP(image, bs_image, centroids):
             blocks.append((x, y, image[y:y + BBOX_SIZE[1], x:x + BBOX_SIZE[0]]))
         return blocks
     
+    def preprocess(image):
+        image = image / 255
+        image -= image.mean()
+        return image
+
     def work_bg(image, centroid, result):
         x, y = centroid[0] - BBOX_SIZE[0] // 2, centroid[1] - BBOX_SIZE[1] // 2
         im_window = image[y: y + BBOX_SIZE[1], 
@@ -41,17 +46,13 @@ def MLP_Detection_MP(image, bs_image, centroids):
         
         if im_window.shape[0] != BBOX_SIZE[1] or im_window.shape[1] != BBOX_SIZE[0]:
             return 
-
-        fd = hog(im_window, orientations=9, 
-                            pixels_per_cell=(8, 8), 
-                            cells_per_block=(3, 3), 
-                            block_norm="L2", 
-                            visualise=False)
-        fd = np.array(fd)
-        fd = [fd.reshape(fd.size)]
-        pred = bg_clf.predict(fd)
-        if pred == 1:
-            currScore = float(bg_clf.predict_proba(fd)[0][pred])
+            
+        input_img = np.array([preprocess(im_window.astype(np.float64))])
+        print("shape: ", input_img.shape)
+        prob = bg_clf.predict(input_img)[0]
+        pred = np.argmax(prob)
+        if pred == 0:
+            currScore = float(prob[pred])
             tmp = (x, y, int(BBOX_SIZE[0]), int(BBOX_SIZE[1]), currScore)
             result.append(tmp)
 
@@ -60,9 +61,7 @@ def MLP_Detection_MP(image, bs_image, centroids):
     threads = []
     results = [[] for _ in range(NUM_THREADS_TRACKING)]
     for centroid, result in zip(centroids, results):
-        t = threading.Thread(target=work_bg, args=(bs_image, centroid, result))
-        t.start()
-        threads.append(t)
+        work_bg(image, centroid, result)
 
     # Wait for computing
     still_alive = True
