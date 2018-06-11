@@ -6,11 +6,13 @@ import glob
 import numpy as np
 from skimage.feature import hog
 from subprocess import call
+import threading
 
 from sift import SIFT
 from video import Video
 from utils import *
 from config import *
+from bs import BS
 
 # Version check
 (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
@@ -56,9 +58,9 @@ call(["mkdir", "-p", NEG_SAMPLE_PATH])
 
 SAMPLE_SIZE = (51, 51)
 POS_CRITERIR = 0.8
-POS_SAMPLE_PER_FRAME = 5
+POS_SAMPLE_PER_FRAME = 4
 NEG_SAMPLE_PER_FRAME = 5
-EDGE_SAMPLE_PER_FRAME = 0
+EDGE_SAMPLE_PER_FRAME = 5
 EDGE_RANGE = 400
 MAX_LOOP = 1000
 ####################################################################
@@ -135,11 +137,11 @@ def create_sample(image, bbox, num_pos=10, num_neg=10, edge_sample=10, pos_crite
     pos_bboxs, neg_bboxs = [], []
     bbox = np.array(bbox)
 
-    tmp, centroids = process_bs(image, return_centroids=True)
+    tmp, centroids = bs.process_bs(return_centroids=True)
     if np.mean(tmp) < 1e-6:
         return pos_samples, neg_samples, pos_bboxs, neg_bboxs
     else:
-        image = tmp
+        pass
 
     # create positive samples
     while len(pos_samples) < num_pos:
@@ -191,6 +193,9 @@ if __name__ == '__main__' :
     # Set up tracker.
     sift = SIFT(ROI, TEMPLATE_PATH)
     tracker = creat_tracker(tracker_type)
+    bs = BS()
+    t = threading.Thread(target=bs.run)
+    t.start()
  
     # Read video
     files = glob.glob(IMAGE_PATH)
@@ -221,6 +226,7 @@ if __name__ == '__main__' :
     # Use SIFT find init_bbox if init_bbox is none
     if init_bbox is None:
         pt = sift.compute(frame)
+        bs.set_info(frame, [0, 0, BBOX_SIZE[0], BBOX_SIZE[1]])
         # Stop if both methods failed
         if pt is None:
             raise ValueError("Initial Tracking Failed!!!")
@@ -245,6 +251,7 @@ if __name__ == '__main__' :
         timer = cv2.getTickCount()
  
         # Update tracker
+        bs.set_frame(frame)
         ok, bbox = tracker.update(frame)
 
         # Crop patch and analysis using histogram

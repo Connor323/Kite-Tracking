@@ -25,7 +25,9 @@ TEMPLATE_PATH = os.path.join(DIR_PATH, "templates/kite0/*.png")
 # KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_1.bmp")
 KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_2.bmp")
 
-START_FRAME = None # "/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-original.bmp" # the path to the start frame name, in case we want to start in the middle of video
+# START_FRAME = None
+START_FRAME = "/Users/hanxiang/Dropbox/20180603/2018-6-3-15-27-3-275-original.bmp" 
+# START_FRAME = "/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-original.bmp" # the path to the start frame name, in case we want to start in the middle of video
 				   # Set None if we want to stat from beginning. 
 # File format
 # NOTE: Format 0: 2018-1-18-12-49-0-204-original.bmp
@@ -37,9 +39,12 @@ FILE_FORMAT = 0
 # MLP_MODEL_PATH = "model/mlp_1layer.model"
 # BG_MODEL_PATH  = "model/mlp_bg.model" 
 BG_MODEL_PATH  = "model/mlp-bg-py3-5.model"
-ANGLE_MODEL = load_model('model/cnn_model.h5') 
+# BG_MODEL_PATH  = "model/cnn_loc_model.h5"
+ANGLE_MODEL_PATH  = "model/cnn_model-8d.h5"
 
 # clf = joblib.load(MLP_MODEL_PATH) # MLP_1 for initial bbox detection 
+ANGLE_MODEL = load_model(ANGLE_MODEL_PATH) 
+# bg_clf = load_model(BG_MODEL_PATH) 
 bg_clf = joblib.load(BG_MODEL_PATH) # MLP_2 for BS detection
 ###########################################################################
 
@@ -82,7 +87,7 @@ BUFFER_MODE = False # If True, use the descidion buffer for tracking
 NUM_ROTATION = 8 # Number of rotation for creating filter bank
 THRESH_ANGLE_DISTANCE = 90 # The thresholding value for the difference of two angles in degree.
 NUM_THREADS_MFR = 24 # Number of treads for computing MFR
-GAIN = 0.8	
+GAIN = 0.6	
 UPDATE_KERNEL = [False] # enable (set to True) by holding keyboard key "a" when any cv window opens 
 USE_CNN = True
 ###########################################################################
@@ -100,8 +105,8 @@ RECORD_SIZE = (912, 912) # Record image size (Don't change)
 VIZ_SIZE = (900, 900) # Visulattion image size (Don't change)
 RECORD_FPS = 15 # frame per second
 RESULT_BASE = "result"
-CREATE_SAMPLES = False
-CONTINUE_CAREATE_SAMPLES = False
+CREATE_SAMPLES = True
+CONTINUE_CAREATE_SAMPLES = True
 NUM_DIVISION_SAMPLES = 4
 SAMPLE_COUNTER = []
 if CREATE_SAMPLES: 

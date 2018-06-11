@@ -30,53 +30,52 @@ class DataReader(object):
 		self.y_test = []
 		self.num_class = num_divs
 
-		if not DATA_SELECT: 
-			for i in range(num_divs):
-				name = "angle_%d" % i 
-				path = osp.join(basePath, name, "*.png")
-				fnames = glob.glob(path)
-				label = np.zeros(num_divs)
-				label[i] = 1
-				for fname in np.random.choice(fnames[:int(len(fnames)*DATA_RATIO)], NUM_PER_CLASS_TRAIN):
-					tmp = cv2.imread(fname)
-					tmp = cv2.resize(tmp, IMAGE_SIZE).astype(float)
-					self.x_train.append(self.preprocess(tmp))
-					self.y_train.append(label)
-				for fname in np.random.choice(fnames[int(len(fnames)*DATA_RATIO):], NUM_PER_CLASS_TEST):
-					tmp = cv2.imread(fname)
-					tmp = cv2.resize(tmp, IMAGE_SIZE)
-					self.x_test.append(self.preprocess(tmp))
-					self.y_test.append(label)
-		else:
-			name = "data"
+		for i in range(num_divs):
+			name = "angle_%d" % i 
 			path = osp.join(basePath, name, "*.png")
 			fnames = glob.glob(path)
-			fnames = sorted(fnames)[:NUM_SELECT]
-			labels = {}
-			for i in range(num_divs):
-				labels[i] = []
-			with open(osp.join(basePath, name, "label.txt"), "r") as file: 
-				for label_idx, label_tmp in enumerate(file.readlines()):
-					label_tmp = int(label_tmp)
-					label = np.zeros(num_divs)
-					labels[label_tmp].append(label_idx)
-					if label_idx >= NUM_SELECT - 1:
-						break
-
-			for i in range(num_divs):
-				label_tmp = labels[i]
+			label = np.zeros(num_divs)
+			label[i] = 1
+			for fname in np.random.choice(fnames[:int(len(fnames)*DATA_RATIO)], NUM_PER_CLASS_TRAIN):
+				tmp = cv2.imread(fname)
+				tmp = cv2.resize(tmp, IMAGE_SIZE).astype(float)
+				self.x_train.append(self.preprocess(tmp))
+				self.y_train.append(label)
+			for fname in np.random.choice(fnames[int(len(fnames)*DATA_RATIO):], NUM_PER_CLASS_TEST):
+				tmp = cv2.imread(fname)
+				tmp = cv2.resize(tmp, IMAGE_SIZE)
+				self.x_test.append(self.preprocess(tmp))
+				self.y_test.append(label)
+		
+		name = "data"
+		path = osp.join(basePath, name, "*.png")
+		fnames = glob.glob(path)
+		fnames = sorted(fnames)[:NUM_SELECT]
+		labels = {}
+		for i in range(num_divs):
+			labels[i] = []
+		with open(osp.join(basePath, name, "label.txt"), "r") as file: 
+			for label_idx, label_tmp in enumerate(file.readlines()):
+				label_tmp = int(label_tmp)
 				label = np.zeros(num_divs)
-				label[i] = 1
-				for fname_idx in np.random.choice(label_tmp[:int(len(label_tmp)*DATA_RATIO)], NUM_PER_CLASS_TRAIN):
-					tmp = cv2.imread(fnames[fname_idx])
-					tmp = cv2.resize(tmp, IMAGE_SIZE).astype(float)
-					self.x_train.append(self.preprocess(tmp))
-					self.y_train.append(label)
-				for fname_idx in np.random.choice(label_tmp[int(len(label_tmp)*DATA_RATIO):], NUM_PER_CLASS_TEST):
-					tmp = cv2.imread(fnames[fname_idx])
-					tmp = cv2.resize(tmp, IMAGE_SIZE)
-					self.x_test.append(self.preprocess(tmp))
-					self.y_test.append(label)
+				labels[label_tmp].append(label_idx)
+				if label_idx >= NUM_SELECT - 1:
+					break
+
+		for i in range(num_divs):
+			label_tmp = labels[i]
+			label = np.zeros(num_divs)
+			label[i] = 1
+			for fname_idx in np.random.choice(label_tmp[:int(len(label_tmp)*DATA_RATIO)], NUM_PER_CLASS_TRAIN):
+				tmp = cv2.imread(fnames[fname_idx])
+				tmp = cv2.resize(tmp, IMAGE_SIZE).astype(float)
+				self.x_train.append(self.preprocess(tmp))
+				self.y_train.append(label)
+			for fname_idx in np.random.choice(label_tmp[int(len(label_tmp)*DATA_RATIO):], NUM_PER_CLASS_TEST):
+				tmp = cv2.imread(fnames[fname_idx])
+				tmp = cv2.resize(tmp, IMAGE_SIZE)
+				self.x_test.append(self.preprocess(tmp))
+				self.y_test.append(label)
 
 		self.x_train = np.array(self.x_train)
 		self.y_train = np.array(self.y_train)

@@ -71,7 +71,8 @@ if __name__ == '__main__' :
         init_bbox, bs_patch = MLP_Detection_MP(frame, bs.get_binary_result(), bs.get_centroids())
         # Stop if both methods failed
         if init_bbox is None:
-            raise ValueError("Initial Tracking Failed!!!")
+            print("Initial Tracking Failed!!!")
+            init_bbox=[0,0,51,51]
 
     # Initialize tracker with first frame and bounding box
     print("image {} / {}, initial bbox: {}".format(video.getFrameIdx(), frame_num, init_bbox) )

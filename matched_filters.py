@@ -6,6 +6,8 @@ import os
 from config import *
 from utils import *
 
+MAJOR_ANGLES = [270, 90, 180, 0, 225, 315, 135, 45]
+
 class MatchedFilter:
     def __init__(self, kernel_path):
         self.kernel_dir = os.path.dirname(kernel_path)
@@ -325,7 +327,8 @@ class MatchedFilter:
                 image -= image.mean()
                 return image
             prob = ANGLE_MODEL.predict(np.array([preprocess(patch)]))[0]
-            return np.argmax(prob) * 360 / NUM_DIVISION_SAMPLES
+            # return np.argmax(prob) * 360 / NUM_DIVISION_SAMPLES
+            return MAJOR_ANGLES[np.argmax(prob)]
 
         patch_original = cropImage(image, bbox)
         if patch_original is None:
@@ -361,7 +364,7 @@ class MatchedFilter:
 
         if USE_CNN:
             self.cnn_pred = pred_angle(patch_original.copy())
-            if self.angles_distance(angle0, self.cnn_pred) > 360*3/8 and \
+            if self.angles_distance(angle0, self.cnn_pred) > 90 and \
                 prev_angle is not None:
                 print("-----> Angle Detection Conflict! Use the previous angle")
                 return self.clip_angle(angle0 + 180)
