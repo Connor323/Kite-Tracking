@@ -199,14 +199,15 @@ class BS:
             return
         self.ret = False
         self.patch = patch
+        self.new_frame = False
 
     def run(self):
         """
         Thread handler
         """
         while True:
-            self.cropImageAndAnalysis()
-            self.new_frame = False
+            if self.new_frame: 
+                self.cropImageAndAnalysis()
             if KILL_BS[0]:
                 break
 

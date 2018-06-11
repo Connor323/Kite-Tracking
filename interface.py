@@ -78,6 +78,7 @@ class Interface:
         """
         # Start timer
         timer = cv2.getTickCount()
+        t_start = time.time()
 
         # Read a new frame
         self.frame_num += 1
@@ -86,7 +87,6 @@ class Interface:
         self.bs.set_frame(frame_original)
  
         # Update tracker
-        t_start = time.time()
         ok, bbox = self.tracker.update(frame)
 
         # bbox limitation (fixed w and h)

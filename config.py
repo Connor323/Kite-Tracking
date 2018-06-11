@@ -26,8 +26,8 @@ TEMPLATE_PATH = os.path.join(DIR_PATH, "templates/kite0/*.png")
 KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_2.bmp")
 
 # START_FRAME = None
-START_FRAME = "/Users/hanxiang/Dropbox/20180603/2018-6-3-15-24-5-366-original.bmp" # train
-# START_FRAME = "/Users/hanxiang/Dropbox/20180603/2018-6-3-15-27-3-275-original.bmp" # test
+# START_FRAME = "/Users/hanxiang/Dropbox/20180603/2018-6-3-15-24-5-366-original.bmp" # train
+START_FRAME = "/Users/hanxiang/Dropbox/20180603/2018-6-3-15-27-3-275-original.bmp" # test
 # START_FRAME = "/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-original.bmp" # the path to the start frame name, in case we want to start in the middle of video
 				   # Set None if we want to stat from beginning. 
 # File format
@@ -52,13 +52,13 @@ bg_clf = load_model(BG_MODEL_PATH)
 #################### Background Substraction Setting ######################
 fgbg_kernel_close_size = 5 # for morphological closing and opening 
 fgbg_kernel_open_size = 5 # for morphological closing and opening 
-history_length = 300 # buffer of history
+history_length = 1000 # buffer of history
 fgbg_kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_close_size, fgbg_kernel_close_size))
 fgbg_kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_open_size, fgbg_kernel_open_size))
 # fgbg = cv2.bgsegm.createBackgroundSubtractorMOG(history=history_length)
 fgbg = cv2.createBackgroundSubtractorMOG2(history=history_length, detectShadows=False)
 BG_MODEL, FG_MODEL = [None], [None]
-UPDATE_BACKGROUND = True
+UPDATE_BACKGROUND = False
 # fgbg = cv2.bgsegm.createBackgroundSubtractorCNT()
 BS_DOWNSAMPLE = 2.5
 HEIGHT_ROI_RATIO = 0.3 # overall ROI starting from [HEIGHT_ROI_RATIO*h : h] in rows
@@ -81,7 +81,7 @@ RECENTER_THRESH = 15 # Max distance allowed from the centroid to the center of b
 
 DECISION_BUFFER_SIZE = 3 # Decision buffer size
 DECISION_BUFFER = [] # Decision buffer
-BUFFER_MODE = False # If True, use the descidion buffer for tracking
+BUFFER_MODE = True # If True, use the descidion buffer for tracking
 ###########################################################################
 
 ######################### Matched Filter Setting ##########################
