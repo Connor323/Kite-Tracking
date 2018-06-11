@@ -46,9 +46,8 @@ def MLP_Detection_MP(image, bs_image, centroids):
         
         if im_window.shape[0] != BBOX_SIZE[1] or im_window.shape[1] != BBOX_SIZE[0]:
             return 
-            
+
         input_img = np.array([preprocess(im_window.astype(np.float64))])
-        print("shape: ", input_img.shape)
         prob = bg_clf.predict(input_img)[0]
         pred = np.argmax(prob)
         if pred == 0:

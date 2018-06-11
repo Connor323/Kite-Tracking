@@ -328,6 +328,7 @@ class MatchedFilter:
                 return image
             prob = ANGLE_MODEL.predict(np.array([preprocess(patch)]))[0]
             # return np.argmax(prob) * 360 / NUM_DIVISION_SAMPLES
+            print("pred_angle: ", MAJOR_ANGLES[np.argmax(prob)])
             return MAJOR_ANGLES[np.argmax(prob)]
 
         patch_original = cropImage(image, bbox)
@@ -367,7 +368,7 @@ class MatchedFilter:
             if self.angles_distance(angle0, self.cnn_pred) > 90 and \
                 prev_angle is not None:
                 print("-----> Angle Detection Conflict! Use the previous angle")
-                return self.clip_angle(angle0 + 180)
+                return prev_angle
             else:
                 return angle0
         else:
