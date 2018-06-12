@@ -94,6 +94,8 @@ print (data.x_train.shape, data.y_train.shape)
 
 if RETRATIN:
 	model = load_model(MODEL_NAME) 
+	# keras.utils.plot_model(model, to_file='model.png', show_shapes=False, show_layer_names=True, rankdir='TB')
+	# raise
 else:
 	model = Sequential()
 	# input: 100x100 images with 3 channels -> (100, 100, 3) tensors.

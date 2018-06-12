@@ -257,9 +257,27 @@ def drawAnlge(frame, angle, center, length=25):
     return frame
 
 def drawPoint(frame, point, color=(255, 0, 255), radius=10):
+    """
+    Draw single point.
+    Params:
+        frame: current image
+        point: 2D point in pixel
+        color: B G R
+        radius: radius of the circle 
+    Return:
+        Painted image
+    """
     return cv2.circle(frame, tuple(point), radius, color, -1)
 
 def savePatchPerAngle(frame, angle, bbox):
+    """
+    Save the image patch for training CNN. Save the patches based on 
+    the number of class in separate directories. 
+    Params:
+        frame: current image
+        angle: output estimated angle
+        bbox: bounding box
+    """
     division = 360 / NUM_DIVISION_SAMPLES
     angle_idx = int(np.round(angle / division, 0)) % NUM_DIVISION_SAMPLES
     DIR = os.path.join(RESULT_BASE, "angle_%d" % angle_idx)

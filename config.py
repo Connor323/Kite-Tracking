@@ -88,9 +88,9 @@ BUFFER_MODE = True # If True, use the descidion buffer for tracking
 NUM_ROTATION = 8 # Number of rotation for creating filter bank
 THRESH_ANGLE_DISTANCE = 90 # The thresholding value for the difference of two angles in degree.
 NUM_THREADS_MFR = 24 # Number of treads for computing MFR
-GAIN = 0.6	
+GAIN = 0.6	# Low pass filter to remove jittering 
 UPDATE_KERNEL = [False] # enable (set to True) by holding keyboard key "a" when any cv window opens 
-USE_CNN = True
+USE_CNN = True # To enable CNN prediction, set True; otherwise, use the color-based method. 
 ###########################################################################
 
 ############################# BBOX Setting ################################
@@ -105,8 +105,8 @@ TRACKING_RECORD, KERNEL_RECORD, PATCH_RECORD, MLP_RECORD, BS_ORIGIN_RECORD, BS_P
 RECORD_SIZE = (912, 912) # Record image size (Don't change)
 VIZ_SIZE = (900, 900) # Visulattion image size (Don't change)
 RECORD_FPS = 15 # frame per second
-RESULT_BASE = "result"
-CREATE_SAMPLES = True
+RESULT_BASE = "result" 
+CREATE_SAMPLES = False # If creating samples for training CNN
 CONTINUE_CAREATE_SAMPLES = True
 NUM_DIVISION_SAMPLES = 4
 SAMPLE_COUNTER = []
@@ -133,7 +133,7 @@ if CREATE_SAMPLES:
 
 WRITE_TMP_RESULT = False # if True, will write the result images rather than showing in windows
 						 # if False, will showing the image in windows
-DEBUG_MODE = True # if True, will show the BS result and localization result;
+DEBUG_MODE = False # if True, will show the BS result and localization result;
 				   # if False, will save the target patches and bounding box
 
 if not WRITE_TMP_RESULT:

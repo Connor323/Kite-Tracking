@@ -328,7 +328,6 @@ class MatchedFilter:
                 return image
             prob = ANGLE_MODEL.predict(np.array([preprocess(patch)]))[0]
             # return np.argmax(prob) * 360 / NUM_DIVISION_SAMPLES
-            print("pred_angle: ", MAJOR_ANGLES[np.argmax(prob)])
             return MAJOR_ANGLES[np.argmax(prob)]
 
         patch_original = cropImage(image, bbox)
