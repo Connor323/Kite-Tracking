@@ -46,7 +46,7 @@ class BS:
         else:
             fgmask = self.prev_fmask
 
-        if DEBUG_MODE:
+        if SHOW_RESULT:
             tmp_show = cv2.resize(fgmask, VIZ_SIZE, cv2.INTER_NEAREST)
             BS_ORIGIN_RECORD[0] = cv2.cvtColor(tmp_show, cv2.COLOR_GRAY2RGB)
 
@@ -69,7 +69,7 @@ class BS:
         FG_MODEL[0] = tmp
         self.binary_image = final_labels
 
-        if DEBUG_MODE:
+        if SHOW_RESULT:
             tmp_show = cv2.resize(tmp_labels, VIZ_SIZE, cv2.INTER_NEAREST)
             BS_POST_RECORD[0] = cv2.cvtColor(tmp_show, cv2.COLOR_GRAY2RGB)
         

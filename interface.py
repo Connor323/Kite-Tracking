@@ -226,6 +226,8 @@ if __name__ == "__main__":
             cv2.waitKey(1)
         else:
             print("   ->Tracking failed!!!")
+        if SHOW_RESULT: 
+            displayFrame(frame, frame_original, bbox, angle, video)
 
 
 

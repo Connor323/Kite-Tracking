@@ -20,11 +20,8 @@ def signal_handler(signal, frame):
     handle the case when hit Ctrl+C
     """
     print('   -> Stop the program by Ctrl+C! ')
-    if not DEBUG_MODE:
-        print("Bounding box saves to {}".format(TARGET_BOX))
-        BBOX_FILE.close()
     KILL_BS[0] = True
-    sys.exit(0)
+    # sys.exit(0)
 
 def pushBuffer(res):
     """
@@ -208,33 +205,15 @@ def displayFrame(frame, frame_original, bbox, angle, video):
     Return:
         Recording image
     """
-    if not DEBUG_MODE:
-        frame_resize = cv2.resize(frame, RECORD_SIZE)
-        if bbox is None or angle is None: return frame_resize
+    frame_show = cv2.resize(frame, VIZ_SIZE)
+    TRACKING_RECORD[0] = frame_show
+    frame_show = getResultFrame()
 
-        if WRITE_TMP_RESULT:
-            cv2.imwrite("Tracking.png", frame_resize)
-        else:
-            cv2.imshow("Tracking", frame_resize)
+    if SHOW_RESULT:
+        cv2.imshow("Tracking", frame_show)
 
-        msg = "%s:%d %d %d %d %f\n" % (video.getFrameName(), bbox[0], bbox[1], bbox[2], bbox[3], angle)
-        BBOX_FILE.write(msg)
-
-        patch = cropImage(frame_original, bbox)
-        if patch is not None:
-            cv2.imwrite(os.path.join(TARGET_PATCH, video.getFrameName()), patch)
-    else:
-        frame_show = cv2.resize(frame, VIZ_SIZE)
-        TRACKING_RECORD[0] = frame_show
-        frame_show = getResultFrame()
-
-        if WRITE_TMP_RESULT:
-            cv2.imwrite("Tracking.png", frame_show)
-        else:
-            cv2.imshow("Tracking", frame_show)
-
-        frame_resize = cv2.resize(frame_show, RECORD_SIZE)
-        frame_resize = swapChannels(frame_resize)
+    frame_resize = cv2.resize(frame_show, RECORD_SIZE)
+    frame_resize = swapChannels(frame_resize)
 
     return frame_resize
 

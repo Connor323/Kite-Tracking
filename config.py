@@ -131,19 +131,10 @@ if CREATE_SAMPLES:
 	call(["mkdir", "-p", PATH])
 	SAMPLE_COUNTER.append(0)	
 
-WRITE_TMP_RESULT = False # if True, will write the result images rather than showing in windows
-						 # if False, will showing the image in windows
-DEBUG_MODE = False # if True, will show the BS result and localization result;
-				   # if False, will save the target patches and bounding box
+SHOW_RESULT = False # if True, will showing the image in windows
+				    # if False, will disable showing
+DEBUG_MODE = False # if True, will show tracking info on terminal;
+				   # if False, will disable info printing
 
-if not WRITE_TMP_RESULT:
+if SHOW_RESULT:
 	cv2.namedWindow("Tracking", cv2.WINDOW_NORMAL)
-
-# setting the result path
-if not DEBUG_MODE:
-	TARGET_PATCH = os.path.join(RESULT_BASE, "patches")
-	TARGET_BOX = os.path.join(RESULT_BASE, "boxes")
-	call(["mkdir", "-p", TARGET_PATCH])
-	call(["mkdir", "-p", TARGET_BOX])
-	BBOX_FILE = open(os.path.join(TARGET_BOX, "bboxes.txt"), "w")
-###########################################################################

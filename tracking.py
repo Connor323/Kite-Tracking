@@ -38,9 +38,8 @@ if __name__ == '__main__' :
     frame_num = video.getFrameNumber()
 
     # Record variables
-    if DEBUG_MODE:
-        image_name = path.split('/')[-1] + "_" + tracker_type + ".mp4"
-        video_writer = imageio.get_writer(image_name, fps=RECORD_FPS)
+    image_name = path.split('/')[-1] + "_" + tracker_type + ".mp4"
+    video_writer = imageio.get_writer(image_name, fps=RECORD_FPS)
     frames_counter = 0
 
     # Create handler when press Ctrl + C
@@ -82,7 +81,7 @@ if __name__ == '__main__' :
     frame = drawBox(frame, init_bbox)
     prev_angle = None
 
-    while True:
+    while not KILL_BS[0]:
         # Start timer
         timer = cv2.getTickCount()
 
@@ -119,17 +118,15 @@ if __name__ == '__main__' :
             # Tracking failure
             if DEBUG_MODE:
                 print("   %s Failed! Use classifier!" % tracker_type)
-                bbox, bs_patch = MLP_Detection_MP(frame, bs.get_binary_result(), bs.get_centroids())
+            bbox, bs_patch = MLP_Detection_MP(frame, bs.get_binary_result(), bs.get_centroids())
             if bbox is None:
-                print("   !!! -> Tracking Failed! Skip current frame...")
+                if DEBUG_MODE:
+                    print("   !!! -> Tracking Failed! Skip current frame...")
                 cv2.putText(frame, "Tracking Failed! Skip current frame...", (100,150), cv2.FONT_HERSHEY_SIMPLEX, 2.0,(0,0,255),5)
                 prev_angle = None
-                if DEBUG_MODE:
-                    video_writer.append_data(displayFrame(frame, frame_original, bbox, angle, video))
-                else:
-                    displayFrame(frame, frame_original, bbox, angle, video)
+                video_writer.append_data(displayFrame(frame, frame_original, bbox, angle, video))
                 frames_counter += 1
-                if not WRITE_TMP_RESULT:
+                if not SHOW_RESULT:
                     # Exit if Space pressed
                     k = cv2.waitKey(10)
                     if k == 32 : break
@@ -173,19 +170,15 @@ if __name__ == '__main__' :
         # Display FPS on frame
         cv2.putText(frame, "FPS : " + str(int(fps)), (100,200), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0, 255, 0), 5);
         # Display result
-        if DEBUG_MODE:
-            video_writer.append_data(displayFrame(frame, frame_original, bbox, angle, video))
-        else:
-            displayFrame(frame, frame_original, bbox, angle, video)
+        video_writer.append_data(displayFrame(frame, frame_original, bbox, angle, video))
         frames_counter += 1
 
-        if not WRITE_TMP_RESULT:
+        if SHOW_RESULT:
             # Exit if Space pressed
             k = cv2.waitKey(1)
             if k == 32 : break
 
 print("Finishing... Total image %d" % frames_counter)
-if DEBUG_MODE:
-    print("Save image to {}".format(image_name))
-    video_writer.close()
+print("Save image to {}".format(image_name))
+video_writer.close()
 

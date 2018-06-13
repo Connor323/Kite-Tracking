@@ -91,7 +91,7 @@ def MLP_Detection_MP(image, bs_image, centroids):
 
     # If visualize is set to true, display the working
     # of the sliding window 
-    if DEBUG_MODE: 
+    if SHOW_RESULT: 
         clone = image.copy()
         for x1, y1, _, _ in detections:
             # Draw the detections at this scale

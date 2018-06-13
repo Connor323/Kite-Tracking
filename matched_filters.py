@@ -236,7 +236,7 @@ class MatchedFilter:
         max_idx_kernel = np.argmax(max_per_MFR) 
         max_location = LOC[max_idx_kernel]
 
-        if DEBUG_MODE:
+        if SHOW_RESULT:
             max_kernel_patch = self.kernels[max_idx_kernel]
             max_kernel_patch = (max_kernel_patch - np.min(max_kernel_patch)) / (np.max(max_kernel_patch) - np.min(max_kernel_patch))
             norm_patch = (norm_patch - np.min(norm_patch)) / (np.max(norm_patch) - np.min(norm_patch))
@@ -366,7 +366,8 @@ class MatchedFilter:
             self.cnn_pred = pred_angle(patch_original.copy())
             if self.angles_distance(angle0, self.cnn_pred) > 90 and \
                 prev_angle is not None:
-                print("-----> Angle Detection Conflict! Use the previous angle")
+                if DEBUG_MODE: 
+                    print("-----> Angle Detection Conflict! Use the previous angle")
                 return prev_angle
             else:
                 return angle0
@@ -385,7 +386,8 @@ class MatchedFilter:
                 if tmp_bbox is not None: 
                     tmp_kernel = cropImage(patch_original.copy(), tmp_bbox)
                     if tmp_kernel is not None: 
-                        print("   -> update kernel")
+                        if DEBUG_MODE: 
+                            print("   -> update kernel")
                         self.kernel = tmp_kernel 
                         self.kernel_angle = final_angle
                         self.kernels, self.angles = self.createMatchedFilterBank(final_angle)
