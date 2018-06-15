@@ -12,7 +12,7 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras.optimizers import SGD
 from keras.metrics import categorical_accuracy 
 
-NUM_PER_CLASS_TRAIN = 500
+NUM_PER_CLASS_TRAIN = 1000
 NUM_PER_CLASS_TEST = 200
 DATA_RATIO = 0.8 # train / total
 IMAGE_SIZE = (51, 51)	
@@ -27,6 +27,7 @@ class DataReader(object):
 		self.x_test = []
 		self.y_test = []
 		self.num_class = num_divs
+		self.label_per_angle = {}
 
 		datasets = glob.glob(osp.join(basePath, "*.npz"))
 		inputs, labels = np.array([]), np.array([])
@@ -38,11 +39,21 @@ class DataReader(object):
 		for img in inputs: 
 			images.append(self.preprocess(img))
 
+		for i in range(num_divs):
+			self.label_per_angle[i] = np.where(labels == i)[0]
+			print("i: ", len(self.label_per_angle[i]))
+
 		images = np.array(images)
 		labels = np.eye(self.num_class)[labels]
 
-		train_idx = np.random.randint(0, int(len(images)*DATA_RATIO), NUM_PER_CLASS_TRAIN*num_divs)
-		test_idx  = np.random.randint(int(len(images)*DATA_RATIO), len(images), NUM_PER_CLASS_TEST*num_divs)
+		train_idx, test_idx = np.array([]), np.array([])
+		for i in range(num_divs):
+			idx = self.label_per_angle[i]
+			tmp = np.random.randint(0, int(len(idx)*DATA_RATIO), NUM_PER_CLASS_TRAIN)
+			train_idx = tmp if not len(train_idx) else np.concatenate((train_idx, tmp), axis=0)
+			tmp = np.random.randint(int(len(idx)*DATA_RATIO), len(idx), NUM_PER_CLASS_TRAIN)
+			test_idx = tmp if not len(test_idx) else np.concatenate((test_idx, tmp), axis=0)
+
 		self.x_train = images[train_idx]
 		self.y_train = labels[train_idx]
 		self.x_test = images[test_idx]
