@@ -13,7 +13,7 @@ from keras.optimizers import SGD
 from keras.metrics import categorical_accuracy 
 
 NUM_PER_CLASS_TRAIN = 500
-NUM_PER_CLASS_TEST = 200
+NUM_PER_CLASS_TEST = 300
 DATA_RATIO = 0.8 # train / total
 IMAGE_SIZE = (51, 51)   
 RETRATIN = False
@@ -49,9 +49,9 @@ class DataReader(object):
         train_idx, test_idx = np.array([]), np.array([])
         for i in range(num_divs):
             idx = self.label_per_angle[i]
-            tmp = np.random.randint(0, int(len(idx)*DATA_RATIO), NUM_PER_CLASS_TRAIN)
+            tmp = idx[np.random.randint(0, int(len(idx)*DATA_RATIO), NUM_PER_CLASS_TRAIN)]
             train_idx = tmp if not len(train_idx) else np.concatenate((train_idx, tmp), axis=0)
-            tmp = np.random.randint(int(len(idx)*DATA_RATIO), len(idx), NUM_PER_CLASS_TRAIN)
+            tmp = idx[np.random.randint(int(len(idx)*DATA_RATIO), len(idx), NUM_PER_CLASS_TEST)]
             test_idx = tmp if not len(test_idx) else np.concatenate((test_idx, tmp), axis=0)
 
         self.x_train = images[train_idx]
@@ -60,10 +60,8 @@ class DataReader(object):
         self.y_test = labels[test_idx]
 
     def preprocess(self, image):
-        image = cv2.normalize(image, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        image -= np.mean(image)
-        # image = image / 255
-        # image -= image.mean()
+        image = image / 255
+        image -= image.mean()
         return image
         
 
@@ -75,17 +73,17 @@ if RETRATIN:
     model = load_model(MODEL_NAME) 
 else:
     model = Sequential()
-    # input: 100x100 images with 3 channels -> (100, 100, 3) tensors.
+    # input: 51x51 images with 3 channels -> (51, 51, 3) tensors.
     # this applies 32 convolution filters of size 3x3 each.
     model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(IMAGE_SIZE[0], IMAGE_SIZE[1], 3)))
-    # model.add(Conv2D(32, (3, 3), activation='relu'))
+    model.add(Conv2D(32, (3, 3), activation='relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    # model.add(Dropout(0.25))
+    model.add(Dropout(0.25))
 
     model.add(Conv2D(64, (3, 3), activation='relu'))
-    # model.add(Conv2D(64, (3, 3), activation='relu'))
+    model.add(Conv2D(64, (3, 3), activation='relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    # model.add(Dropout(0.25))
+    model.add(Dropout(0.25))
 
     model.add(Flatten())
     model.add(Dense(256, activation='relu', kernel_regularizer=regularizers.l2(0.01)))
@@ -97,5 +95,8 @@ else:
 
 model.fit(data.x_train, data.y_train, batch_size=32, epochs=10, verbose=1)
 metrics = model.evaluate(data.x_test, data.y_test, batch_size=32, verbose=1)
+down_case = np.where(data.y_test == 1)[1] == 1
+metrics_down = model.evaluate(data.x_test[down_case], data.y_test[down_case], batch_size=32, verbose=1)
 model.save(MODEL_NAME)
 print ('Loss: {:.3f}, Accuracy: {:.3f}'.format(metrics[0], metrics[1]))
+print ('DOWN: Loss: {:.3f}, Accuracy: {:.3f}'.format(metrics_down[0], metrics_down[1]))

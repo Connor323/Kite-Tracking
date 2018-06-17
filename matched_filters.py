@@ -323,10 +323,8 @@ class MatchedFilter:
 
         def pred_angle(patch):
             def preprocess(image):
-                image = cv2.normalize(image, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-                image -= np.mean(image)
-                # image = image / 255
-                # image -= image.mean()
+                image = image / 255
+                image -= image.mean()
                 return image
             prob = ANGLE_MODEL.predict(np.array([preprocess(patch)]))[0]
             # return np.argmax(prob) * 360 / NUM_DIVISION_SAMPLES

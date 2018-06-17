@@ -41,7 +41,7 @@ FILE_FORMAT = 0
 # BG_MODEL_PATH  = "model/mlp_bg.model" 
 # BG_MODEL_PATH  = "model/mlp-bg-py3-5.model"
 BG_MODEL_PATH  = "model/cnn_loc_model.h5"
-ANGLE_MODEL_PATH  = "model/cnn_model-8d.h5"
+ANGLE_MODEL_PATH  = "model/cnn_model-8d3.h5"
 
 # clf = joblib.load(MLP_MODEL_PATH) # MLP_1 for initial bbox detection 
 ANGLE_MODEL = load_model(ANGLE_MODEL_PATH) 
@@ -90,7 +90,7 @@ THRESH_ANGLE_DISTANCE = 90 # The thresholding value for the difference of two an
 NUM_THREADS_MFR = 24 # Number of treads for computing MFR
 GAIN = 0.8	# Low pass filter to remove jittering 
 UPDATE_KERNEL = [False] # enable (set to True) by holding keyboard key "a" when any cv window opens 
-USE_CNN = False # To enable CNN prediction, set True; otherwise, use the color-based method. 
+USE_CNN = True # To enable CNN prediction, set True; otherwise, use the color-based method. 
 ###########################################################################
 
 ############################# BBOX Setting ################################
@@ -133,7 +133,7 @@ if CREATE_SAMPLES:
 
 SHOW_RESULT = False # if True, will showing the image in windows
 				    # if False, will disable showing
-DEBUG_MODE = False # if True, will show tracking info on terminal;
+DEBUG_MODE = True # if True, will show tracking info on terminal;
 				   # if False, will disable info printing
 
 if SHOW_RESULT:
