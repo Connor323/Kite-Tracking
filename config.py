@@ -25,9 +25,9 @@ TEMPLATE_PATH = os.path.join(DIR_PATH, "templates/kite0/*.png")
 # KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_1.bmp")
 KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_2.bmp")
 
-# START_FRAME = None
+START_FRAME = None
 # START_FRAME = "/Users/hanxiang/Dropbox/20180603/2018-6-3-15-24-5-366-original.bmp" # train
-START_FRAME = "/Users/hanxiang/Dropbox/20180603/2018-6-3-15-27-3-275-original.bmp" # test
+# START_FRAME = "/Users/hanxiang/Dropbox/20180603/2018-6-3-15-27-3-275-original.bmp" # test
 # START_FRAME = "/Users/hanxiang/Dropbox/20180131/2018-1-31-10-49-22-297-original.bmp" # the path to the start frame name, in case we want to start in the middle of video
 				   # Set None if we want to stat from beginning. 
 # File format
@@ -88,7 +88,7 @@ BUFFER_MODE = True # If True, use the descidion buffer for tracking
 NUM_ROTATION = 8 # Number of rotation for creating filter bank
 THRESH_ANGLE_DISTANCE = 90 # The thresholding value for the difference of two angles in degree.
 NUM_THREADS_MFR = 24 # Number of treads for computing MFR
-GAIN = 0.6	# Low pass filter to remove jittering 
+GAIN = 0.8	# Low pass filter to remove jittering 
 UPDATE_KERNEL = [False] # enable (set to True) by holding keyboard key "a" when any cv window opens 
 USE_CNN = True # To enable CNN prediction, set True; otherwise, use the color-based method. 
 ###########################################################################
