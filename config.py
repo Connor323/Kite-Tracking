@@ -90,7 +90,7 @@ THRESH_ANGLE_DISTANCE = 90 # The thresholding value for the difference of two an
 NUM_THREADS_MFR = 24 # Number of treads for computing MFR
 GAIN = 0.8	# Low pass filter to remove jittering 
 UPDATE_KERNEL = [False] # enable (set to True) by holding keyboard key "a" when any cv window opens 
-USE_CNN = True # To enable CNN prediction, set True; otherwise, use the color-based method. 
+USE_CNN = False # To enable CNN prediction, set True; otherwise, use the color-based method. 
 ###########################################################################
 
 ############################# BBOX Setting ################################
