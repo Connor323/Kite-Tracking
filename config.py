@@ -18,12 +18,14 @@ tracker_type = tracker_types[2]
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 # IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
 # IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
-IMAGE_PATH = "/Users/hanxiang/Dropbox/20180603/*.bmp"
+# IMAGE_PATH = "/Users/hanxiang/Dropbox/20180603/*.bmp"
+IMAGE_PATH = "/Users/hanxiang/Dropbox/20180604/*.bmp"
 
 TEMPLATE_PATH = os.path.join(DIR_PATH, "templates/kite0/*.png")
 # KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_0.bmp")
 # KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_1.bmp")
-KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_2.bmp")
+# KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_2.bmp")
+KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_3.bmp")
 
 START_FRAME = None
 # START_FRAME = "/Users/hanxiang/Dropbox/20180603/2018-6-3-15-24-5-366-original.bmp" # train
@@ -40,11 +42,10 @@ FILE_FORMAT = 0
 # MLP_MODEL_PATH = "model/mlp_1layer.model"
 # BG_MODEL_PATH  = "model/mlp_bg.model" 
 # BG_MODEL_PATH  = "model/mlp-bg-py3-5.model"
-BG_MODEL_PATH  = "model/cnn_loc_model.h5"
+BG_MODEL_PATH  = "model/cnn_loc_model2.h5"
 ANGLE_MODEL_PATH  = "model/cnn_model-8d3.h5"
 
 # clf = joblib.load(MLP_MODEL_PATH) # MLP_1 for initial bbox detection 
-ANGLE_MODEL = load_model(ANGLE_MODEL_PATH) 
 bg_clf = load_model(BG_MODEL_PATH) 
 # bg_clf = joblib.load(BG_MODEL_PATH) # MLP_2 for BS detection
 ###########################################################################
@@ -90,7 +91,9 @@ THRESH_ANGLE_DISTANCE = 90 # The thresholding value for the difference of two an
 NUM_THREADS_MFR = 24 # Number of treads for computing MFR
 GAIN = 0.8	# Low pass filter to remove jittering 
 UPDATE_KERNEL = [False] # enable (set to True) by holding keyboard key "a" when any cv window opens 
-USE_CNN = True # To enable CNN prediction, set True; otherwise, use the color-based method. 
+USE_CNN = False # To enable CNN prediction, set True; otherwise, use the color-based method. 
+if USE_CNN:
+	ANGLE_MODEL = load_model(ANGLE_MODEL_PATH) 
 ###########################################################################
 
 ############################# BBOX Setting ################################
@@ -131,7 +134,7 @@ if CREATE_SAMPLES:
 	call(["mkdir", "-p", PATH])
 	SAMPLE_COUNTER.append(0)	
 
-SHOW_RESULT = False # if True, will showing the image in windows
+SHOW_RESULT = True # if True, will showing the image in windows
 				    # if False, will disable showing
 DEBUG_MODE = True # if True, will show tracking info on terminal;
 				   # if False, will disable info printing

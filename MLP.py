@@ -50,7 +50,7 @@ def MLP_Detection_MP(image, bs_image, centroids):
         input_img = np.array([preprocess(im_window.astype(np.float64))])
         prob = bg_clf.predict(input_img)[0]
         pred = np.argmax(prob)
-        if pred == 0:
+        if pred == 0: 
             currScore = float(prob[pred])
             tmp = (x, y, int(BBOX_SIZE[0]), int(BBOX_SIZE[1]), currScore)
             result.append(tmp)

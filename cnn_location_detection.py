@@ -12,7 +12,7 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras.optimizers import SGD
 from keras.metrics import categorical_accuracy 
 
-NUM_PER_CLASS_TRAIN = 2000
+NUM_PER_CLASS_TRAIN = 17641
 NUM_PER_CLASS_TEST = 500
 DATA_RATIO = 0.8 # train / total
 IMAGE_SIZE = (51, 51)	
@@ -32,12 +32,12 @@ class DataReader(object):
 			fnames = glob.glob(path)
 			label = np.zeros(2)
 			label[i] = 1
-			for fname in np.random.choice(fnames[:int(len(fnames)*DATA_RATIO)], NUM_PER_CLASS_TRAIN):
+			for fname in fnames:
 				tmp = cv2.imread(fname)
 				tmp = cv2.resize(tmp, IMAGE_SIZE).astype(float)
 				self.x_train.append(self.preprocess(tmp))
 				self.y_train.append(label)
-			for fname in np.random.choice(fnames[int(len(fnames)*DATA_RATIO):], NUM_PER_CLASS_TEST):
+			for fname in np.random.choice(fnames, NUM_PER_CLASS_TEST):
 				tmp = cv2.imread(fname)
 				tmp = cv2.resize(tmp, IMAGE_SIZE)
 				self.x_test.append(self.preprocess(tmp))
@@ -77,7 +77,7 @@ else:
 	sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
 	model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
 
-model.fit(data.x_train, data.y_train, batch_size=32, epochs=10, verbose=1)
+model.fit(data.x_train, data.y_train, batch_size=32, epochs=4, verbose=1)
 metrics = model.evaluate(data.x_test, data.y_test, batch_size=32, verbose=1)
 model.save(MODEL_NAME)
 print ('Loss: {:.3f}, Accuracy: {:.3f}'.format(metrics[0], metrics[1]))
