@@ -53,7 +53,7 @@ bg_clf = load_model(BG_MODEL_PATH)
 #################### Background Substraction Setting ######################
 fgbg_kernel_close_size = 5 # for morphological closing and opening 
 fgbg_kernel_open_size = 5 # for morphological closing and opening 
-history_length = 1000 # buffer of history
+history_length = 200 # buffer of history
 fgbg_kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_close_size, fgbg_kernel_close_size))
 fgbg_kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (fgbg_kernel_open_size, fgbg_kernel_open_size))
 # fgbg = cv2.bgsegm.createBackgroundSubtractorMOG(history=history_length)
@@ -91,7 +91,9 @@ THRESH_ANGLE_DISTANCE = 90 # The thresholding value for the difference of two an
 NUM_THREADS_MFR = 24 # Number of treads for computing MFR
 GAIN = 0.8	# Low pass filter to remove jittering 
 UPDATE_KERNEL = [False] # enable (set to True) by holding keyboard key "a" when any cv window opens 
-USE_CNN = False # To enable CNN prediction, set True; otherwise, use the color-based method. 
+USE_CNN = True # To enable CNN prediction, set True; otherwise, use the color-based method. 
+mf_kernel_size = 10
+mf_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (mf_kernel_size, mf_kernel_size))
 if USE_CNN:
 	ANGLE_MODEL = load_model(ANGLE_MODEL_PATH) 
 ###########################################################################
@@ -134,9 +136,9 @@ if CREATE_SAMPLES:
 	call(["mkdir", "-p", PATH])
 	SAMPLE_COUNTER.append(0)	
 
-SHOW_RESULT = True # if True, will showing the image in windows
+SHOW_RESULT = False # if True, will showing the image in windows
 				    # if False, will disable showing
-DEBUG_MODE = True # if True, will show tracking info on terminal;
+DEBUG_MODE = False # if True, will show tracking info on terminal;
 				   # if False, will disable info printing
 
 if SHOW_RESULT:

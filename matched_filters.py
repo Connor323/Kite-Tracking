@@ -17,10 +17,13 @@ class MatchedFilter:
         self.kernels, self.angles = self.createMatchedFilterBank(-90)
         self.cnn_pred = None
 
-    def rotate_bound(self, image, angle):
+    def rotate_bound(self, image, angle, center=None):
         # grab the dimensions of the image and then determine the
         (h, w) = image.shape[:2]
-        (cX, cY) = (w // 2, h // 2)
+        if center is None: 
+            (cX, cY) = (w // 2, h // 2)
+        else:
+            (cX, cY) = center
 
         # grab the rotation matrix (applying the negative of the
         # angle to rotate clockwise), then grab the sine and cosine
@@ -245,7 +248,7 @@ class MatchedFilter:
             PATCH_RECORD[0] = (norm_patch * 255).astype(np.uint8)
         return max_idx_kernel, max_location
 
-    def getTargetAngle(self, kernel_angle_idx, bs_patch, image, max_loc, bbox, prev_angle):
+    def getTargetAngle(self, bs_patch, image, bbox, prev_angle):
         """
         Obtain the target angle give the selected kernel angle as a base to avoid aliasing.
 
@@ -255,11 +258,16 @@ class MatchedFilter:
         Return:
             object angle: float value
         """
+        bbox = np.array(bbox).astype(int)
+        max_loc = bbox[2:] // 2
+
         def dist(pt1, pt2):
             return np.linalg.norm(np.array(pt1) - np.array(pt2))
 
         def getMeanValueFromArea(patch):
-            s_patch = patch[..., 1].astype(np.uint8)
+            tmp_patch = patch.astype(float)
+            tmp_patch = tmp_patch[..., 2] / np.sum(tmp_patch, axis=2)
+            s_patch = (tmp_patch * 255).astype(np.uint8)
             ret2, s_patch = cv2.threshold(s_patch, 0, 255, cv2.THRESH_TOZERO+cv2.THRESH_OTSU)
             if s_patch is None: # TODO: check why is None
                 return 0
@@ -276,15 +284,15 @@ class MatchedFilter:
             bbox[1] = max(0, bbox[1])
             bbox = bbox.astype(int)
             if bbox[2] < bbox[3]:
-                area1 = patch[bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]//2] # left: 180
+                area1 = patch[bbox[1]:bbox[1]+bbox[3], bbox[0]:max_loc[0]] # left: 180
                 area1 = getMeanValueFromArea(area1)
-                area2 = patch[bbox[1]:bbox[1]+bbox[3], bbox[0]+bbox[2]//2:bbox[0]+bbox[2]] # right: 0
+                area2 = patch[bbox[1]:bbox[1]+bbox[3], max_loc[0]:bbox[0]+bbox[2]] # right: 0
                 area2 = getMeanValueFromArea(area2)
                 angles = [180, 0]
             else:
-                area1 = patch[bbox[1]:bbox[1]+bbox[3]//2, bbox[0]:bbox[0]+bbox[2]] # upper: 270
+                area1 = patch[bbox[1]:max_loc[1], bbox[0]:bbox[0]+bbox[2]] # upper: 270
                 area1 = getMeanValueFromArea(area1)
-                area2 = patch[bbox[1]+bbox[3]//2:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]] # bottom: 90
+                area2 = patch[max_loc[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]] # bottom: 90
                 area2 = getMeanValueFromArea(area2)
                 angles = [270, 90]
             return angles[np.argmax([area1, area2])]
@@ -294,17 +302,22 @@ class MatchedFilter:
             patch_h, patch_w = patch.shape[:2]
 
             _, (w, h), angle = bbox_rect
+            box = cv2.boxPoints(bbox_rect)
+            box = np.int0(box)
+            patch_draw = patch.copy()
+            cv2.drawContours(patch_draw, [box], 0, (0,0,255), 2)
+
             old_c = np.array([np.mean(bbox[:, 0]), np.mean(bbox[:, 1])])
             tmp = np.ones([4, 3], float)
             bbox = bbox + (max_loc - old_c)
             tmp[:, :2] = bbox
         
-            M = cv2.getRotationMatrix2D(tuple(max_loc), angle, 1)
+            M = cv2.getRotationMatrix2D(tuple(max_loc), angle0, 1)
             rotated_patch = cv2.warpAffine(patch, M, (patch_w, patch_h))
             bbox = M.dot(tmp.T).T
             selected_angle = findColorLoc(rotated_patch, bbox)
 
-            return self.clip_angle(selected_angle + angle)
+            return self.clip_angle(selected_angle + angle0)
 
         def final_process(angle0, angle1):
             if self.angles_distance(angle0, angle1) > THRESH_ANGLE_DISTANCE:
@@ -327,7 +340,6 @@ class MatchedFilter:
                 image -= image.mean()
                 return image
             prob = ANGLE_MODEL.predict(np.array([preprocess(patch)]))[0]
-            # return np.argmax(prob) * 360 / NUM_DIVISION_SAMPLES
             return MAJOR_ANGLES[np.argmax(prob)]
 
         patch_original = cropImage(image, bbox)
@@ -337,6 +349,9 @@ class MatchedFilter:
         tight_bbox, tight_rect = self.findTightBboxFromBS(bs_patch)
         if tight_bbox is None:
             return None
+
+
+        self.cnn_pred = pred_angle(patch_original.copy())
 
         d1 = dist(tight_bbox[0], tight_bbox[1])
         d2 = dist(tight_bbox[1], tight_bbox[2])
@@ -355,44 +370,13 @@ class MatchedFilter:
                 origin_angle_radian = np.arctan(float(tight_bbox[0][1] - tight_bbox[1][1]) / (tight_bbox[0][0] - tight_bbox[1][0]))
             origin_angle = origin_angle_radian / np.pi * 180
         origin_angle = self.clip_angle(origin_angle)
-        kernel_angle = self.angles[kernel_angle_idx]
-
-        if self.angles_distance(kernel_angle, origin_angle) > THRESH_ANGLE_DISTANCE:
+        if self.angles_distance(self.cnn_pred, origin_angle) > THRESH_ANGLE_DISTANCE:
             angle0 = self.clip_angle(origin_angle + 180)
         else:
             angle0 = origin_angle
 
-        if USE_CNN:
-            self.cnn_pred = pred_angle(patch_original.copy())
-            if self.angles_distance(angle0, self.cnn_pred) > 90 and \
-                prev_angle is not None:
-                if DEBUG_MODE: 
-                    print("-----> Angle Detection Conflict! Use the previous angle")
-                return prev_angle
-            else:
-                return angle0
-        else:
-            patch = cropImage(image, bbox)
-            patch[bs_patch == 0] = 0
-            if patch is None:
-                return None
-            patch = cv2.cvtColor(patch, cv2.COLOR_BGR2HSV)
-            angle1 = self.clip_angle(refineAngle(patch, tight_bbox, tight_rect, max_loc))
-            final_angle = final_process(angle0, angle1)
-
-            self.update_kernel_status()
-            if UPDATE_KERNEL[0]:
-                tmp_bbox = self.findBboxFromBS(bs_patch)
-                if tmp_bbox is not None: 
-                    tmp_kernel = cropImage(patch_original.copy(), tmp_bbox)
-                    if tmp_kernel is not None: 
-                        if DEBUG_MODE: 
-                            print("   -> update kernel")
-                        self.kernel = tmp_kernel 
-                        self.kernel_angle = final_angle
-                        self.kernels, self.angles = self.createMatchedFilterBank(final_angle)
-                        self.saveNewKernel()
-            return final_angle
+        angle1 = self.clip_angle(refineAngle(patch_original.copy(), tight_bbox, tight_rect, max_loc))
+        return final_process(angle0, angle1)
         
 
 

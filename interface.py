@@ -22,9 +22,6 @@ class Interface:
         self.tracker = creat_tracker(tracker_type)
         # Set up BS
         self.bs = BS()
-        self.t = threading.Thread(target=self.bs.run)
-        # self.t.setDaemon(True)
-        self.t.start()
         # Set up Matched Filter
         self.MF = MatchedFilter(KERNEL_PATH)
         # Initialize variables
@@ -51,7 +48,7 @@ class Interface:
             for frame in frames[:-1]:
                 self.frame_num += 1
                 self.bs.set_info(frame, [0, 0, BBOX_SIZE[0], BBOX_SIZE[1]])
-                time.sleep(0.1)
+                self.bs.cropImageAndAnalysis()
             self.frame_num += 1
             init_bbox, bs_patch = MLP_Detection_MP(frames[-1], self.bs.get_binary_result(), self.bs.get_centroids())
             # Stop if both methods failed
@@ -84,7 +81,7 @@ class Interface:
         self.frame_num += 1
         angle = None
         frame_original = frame.copy() # make a copy for result saving
-        self.bs.set_frame(frame_original)
+        frame_tmp = frame.copy() # make a copy for result saving
  
         # Update tracker
         ok, bbox = self.tracker.update(frame)
@@ -100,8 +97,9 @@ class Interface:
         if ok:
             # Crop patch and analysis using histogram
             t_start = time.time()
-            ok, bs_patch = self.bs.get_info()
-            # ok, bs_patch = cropImageAndAnalysis(frame, bbox)
+            self.bs.set_info(frame_original, bbox)
+            self.bs.cropImageAndAnalysis()
+            ok, bs_patch, bbox = self.bs.get_info()
             if verbose:
                 print ("post tracking: ", time.time() - t_start)
 
@@ -122,25 +120,18 @@ class Interface:
             ok = True
             del self.tracker # release the object space
             self.tracker = creat_tracker(tracker_type)
-            frame = drawBox(frame, bbox) # TODO: find out why need this step...
-            self.tracker.init(frame, bbox)
+            self.tracker.init(frame_original, bbox)
             if verbose:
                 print ("MLP: ", time.time() - t_start )
-        # update BS info
-        self.bs.set_info(frame_original, bbox)
  
         # Apply matched filter to compute the angle of target
         t_start = time.time()
         if bs_patch is not None:
-            kernel_angle_idx, center_loc = self.MF.applyFilters(frame_original.copy(), bs_patch.copy(), copy.copy(bbox))
-            if kernel_angle_idx is not None:
-                angle = self.MF.getTargetAngle(kernel_angle_idx, bs_patch, frame_original.copy(), 
-                                               copy.copy(center_loc), copy.copy(bbox), self.prev_angle)
-                center_loc = (np.array(center_loc) + np.array(bbox[:2])).astype(int)
-                if angle is not None:
-                    self.prev_angle = angle
-                else:
-                    return False, None, None, None, None
+            angle = self.MF.getTargetAngle(bs_patch, frame_original.copy(), 
+                                           copy.copy(bbox), self.prev_angle)
+            center_loc = (np.array(bbox[:2]) + np.array(bbox[2:]) / 2).astype(int)
+            if angle is not None:
+                self.prev_angle = angle
             else:
                 return False, None, None, None, None
         else:
@@ -167,11 +158,6 @@ class Interface:
         return ok, bbox, angle, center_loc, np.mean(self.fps)
 
 # This is an example for using Interface
-# To avoid opening opencv window and verbose information, 
-# please set the variables:
-#           WRITE_TMP_RESULT = True
-#           DEBUG_MODE = False
-# 
 if __name__ == "__main__":
     # Read video
     files = glob.glob(IMAGE_PATH)
@@ -179,6 +165,10 @@ if __name__ == "__main__":
 
     _, path_and_file = os.path.splitdrive(files[0])
     path, file = os.path.split(path_and_file)
+
+    # Record variables
+    image_name = path.split('/')[-1] + ".mp4"
+    video_writer = imageio.get_writer(image_name, fps=RECORD_FPS)
 
     video = Video(files, FILE_FORMAT, START_FRAME)
     ok, frame = video.read()
@@ -219,18 +209,23 @@ if __name__ == "__main__":
             drawBox(frame, bbox)
             drawAnlge(frame, angle, center_loc)
             drawPoint(frame, center_loc)
-            if CREATE_SAMPLES:
-                savePatchPerAngle(frame_original, angle, bbox)
-            frame_resize = cv2.resize(frame, (512, 512))
-            cv2.imshow("frame", frame_resize)
-            cv2.waitKey(1)
+            cv2.putText(frame, "Angle : " + str(int(angle)), (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2.0, 
+                        (0, 255, 0), 5);
+            cv2.putText(frame, "FPS : " + str(int(fps)), (100,200), cv2.FONT_HERSHEY_SIMPLEX, 2.0, 
+                        (0, 255, 0), 5);
+            
         else:
-            print("   ->Tracking failed!!!")
-        if SHOW_RESULT: 
-            displayFrame(frame, frame_original, bbox, angle, video)
+            print("Fail on tracking!!!")
+            cv2.putText(frame, "Fail!", (100,200), cv2.FONT_HERSHEY_SIMPLEX, 2.0, 
+                        (0, 0, 255), 5);
+        frame_resize = cv2.resize(frame, (512, 512))
+        video_writer.append_data(swapChannels(frame_resize))
+        cv2.imshow("frame", frame_resize)
+        k = cv2.waitKey(1)
+        if k == 32 : break
 
-
-
+print("Save image to {}".format(image_name))
+video_writer.close()
 
 
 

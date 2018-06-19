@@ -103,13 +103,15 @@ class BS:
         min_idx = np.argmin(dists)
         min_val = dists[min_idx]
 
-        if min_val > RECENTER_THRESH:
-            new_bbox = nd_bbox
-            new_bbox[:2] = centroids[min_idx] - nd_bbox[2:] // 2
-            new_bbox = new_bbox.tolist()
+        new_bbox = nd_bbox
+        new_bbox[:2] = centroids[min_idx] - nd_bbox[2:] // 2
+        new_bbox = new_bbox.astype(int).tolist()
+        self.bbox = new_bbox
+
+        if min_val > RECENTER_THRESH: 
             return self.cropImage(image, new_bbox), True
         else:
-            return self.cropImage(image, bbox), False
+            return self.cropImage(image, new_bbox), False
 
     def cropImage(self, image, bbox):
         """
@@ -145,7 +147,7 @@ class BS:
             None
         Return:
             patch of image
-            if succeed
+            if over the threshold value
         """
         image, centroids = self.process_bs(low_area=MIN_AREA, up_area=MAX_AREA, return_centroids=True)
         if len(centroids) > 0:
@@ -227,7 +229,7 @@ class BS:
         """
         Get current info
         """
-        return self.ret, self.patch
+        return self.ret, self.patch, self.bbox
 
     def get_binary_result(self):
         """
