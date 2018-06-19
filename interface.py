@@ -190,10 +190,10 @@ if __name__ == "__main__":
     while True:
         # Read one frame
         ok, frame = video.read()
-        frame_original = frame.copy()
         if not ok:
             print('Cannot read video file')
-            sys.exit()
+            break
+        frame_original = frame.copy()
 
         # Obtain results
         ok, bbox, angle, center_loc, fps = tracker.update(frame, verbose=False)
