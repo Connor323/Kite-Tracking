@@ -85,54 +85,6 @@ class MatchedFilter:
         """
         return angle % 360
 
-    def findTightBboxFromBS(self, bs_patch):
-        """
-        Find the tight bbox from the BS binary image
-
-        Params:
-            bs_patch: the binary image patch/image from BS result
-        Return:
-            tight bbox
-            tight rect
-        """
-        _, contours, hierarchy = cv2.findContours(bs_patch, 1, 2)
-        max_area = 0
-        select_cnt = None
-        for cnt in contours:
-            M = cv2.moments(cnt)
-            if M["m00"] > max_area:
-                select_cnt = cnt
-                max_area = M["m00"]
-        if select_cnt is None:
-            return None, None
-
-        rect = cv2.minAreaRect(select_cnt)
-        bbox = cv2.boxPoints(rect)
-        return bbox, rect
-
-    def findBboxFromBS(self, bs_patch):
-        """
-        Find the bbox from the BS binary image
-
-        Params:
-            bs_patch: the binary image patch/image from BS result
-        Return:
-            bbox
-        """
-        _, contours, hierarchy = cv2.findContours(bs_patch, 1, 2)
-        max_area = 0
-        select_cnt = None
-        for cnt in contours:
-            M = cv2.moments(cnt)
-            if M["m00"] > max_area:
-                select_cnt = cnt
-                max_area = M["m00"]
-        if select_cnt is None:
-            return None
-        else:
-            x,y,w,h = cv2.boundingRect(select_cnt)
-            return np.array([x,y,w,h])
-
     def angles_distance(self, angle1, angle2):
         """
         Compute the distance between two angles
@@ -248,13 +200,12 @@ class MatchedFilter:
             PATCH_RECORD[0] = (norm_patch * 255).astype(np.uint8)
         return max_idx_kernel, max_location
 
-    def getTargetAngle(self, bs_patch, image, bbox, prev_angle):
+    def getTargetAngle(self, image, bbox, prev_angle):
         """
         Obtain the target angle give the selected kernel angle as a base to avoid aliasing.
 
         Params:
             kernel_angle_idx: int value
-            bs_patch: binary image patch from BS result
         Return:
             object angle: float value
         """
@@ -346,37 +297,8 @@ class MatchedFilter:
         if patch_original is None:
             return None, None
 
-        tight_bbox, tight_rect = self.findTightBboxFromBS(bs_patch)
-        if tight_bbox is None:
-            return None
-
-
         self.cnn_pred = pred_angle(patch_original.copy())
-
-        d1 = dist(tight_bbox[0], tight_bbox[1])
-        d2 = dist(tight_bbox[1], tight_bbox[2])
-        if d1 > d2:
-            if abs(tight_bbox[1][0] - tight_bbox[2][0]) < 1e-10:
-                slide = np.inf if tight_bbox[1][1] - tight_bbox[2][1] > 0 else -np.inf
-                origin_angle_radian = np.arctan(slide)
-            else:
-                origin_angle_radian = np.arctan(float(tight_bbox[1][1] - tight_bbox[2][1]) / (tight_bbox[1][0] - tight_bbox[2][0]))
-            origin_angle = origin_angle_radian / np.pi * 180
-        else:
-            if abs(tight_bbox[0][0] - tight_bbox[1][0]) < 1e-10:
-                slide = np.inf if tight_bbox[0][1] - tight_bbox[1][1] > 0 else -np.inf
-                origin_angle_radian = np.arctan(slide)
-            else:
-                origin_angle_radian = np.arctan(float(tight_bbox[0][1] - tight_bbox[1][1]) / (tight_bbox[0][0] - tight_bbox[1][0]))
-            origin_angle = origin_angle_radian / np.pi * 180
-        origin_angle = self.clip_angle(origin_angle)
-        if self.angles_distance(self.cnn_pred, origin_angle) > THRESH_ANGLE_DISTANCE:
-            angle0 = self.clip_angle(origin_angle + 180)
-        else:
-            angle0 = origin_angle
-
-        angle1 = self.clip_angle(refineAngle(patch_original.copy(), tight_bbox, tight_rect, max_loc))
-        return final_process(angle0, angle1)
+        return self.cnn_pred
         
 
 

@@ -19,7 +19,8 @@ DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 # IMAGE_PATH = "/Users/hanxiang/Dropbox/20180118/*.bmp"
 # IMAGE_PATH = "/Users/hanxiang/Dropbox/20180131/*.bmp"
 # IMAGE_PATH = "/Users/hanxiang/Dropbox/20180603/*.bmp"
-IMAGE_PATH = "/Users/hanxiang/Dropbox/20180604/*.bmp"
+# IMAGE_PATH = "/Users/hanxiang/Dropbox/20180604/*.bmp"
+IMAGE_PATH = "/Users/hanxiang/Downloads/20180629/*.bmp"
 
 TEMPLATE_PATH = os.path.join(DIR_PATH, "templates/kite0/*.png")
 # KERNEL_PATH = os.path.join(DIR_PATH, "kernels/kernel_0.bmp")
@@ -35,14 +36,15 @@ START_FRAME = None
 # File format
 # NOTE: Format 0: 2018-1-18-12-49-0-204-original.bmp
 #       Format 1: 2017-12-15-10-32-8-595.bmp (without "original")
-FILE_FORMAT = 0
+#       Format 2: img10000_2018-06-29-17-43-12.bmp (without "original")
+FILE_FORMAT = 2
 
 
 # Classifier loading 
 # MLP_MODEL_PATH = "model/mlp_1layer.model"
 # BG_MODEL_PATH  = "model/mlp_bg.model" 
 # BG_MODEL_PATH  = "model/mlp-bg-py3-5.model"
-BG_MODEL_PATH  = "model/cnn_loc_model2.h5"
+BG_MODEL_PATH  = "model/cnn_loc_model3.h5"
 ANGLE_MODEL_PATH  = "model/cnn_model-8d3.h5"
 
 # clf = joblib.load(MLP_MODEL_PATH) # MLP_1 for initial bbox detection 
@@ -74,7 +76,7 @@ KILL_BS = [False]
 ###########################################################################
     
 ############################# Tracking Setting ############################
-PROB_CRITERIA = 0.50 # The prob_thresh value for MLP_2
+PROB_CRITERIA = 0.99 # The prob_thresh value for MLP_2
 NUM_THREADS_TRACKING = 24 # Multi-thread boost setting 
 
 TRACKING_CRITERIA_AREA = 0 # minimum area inside bbox for tracking
@@ -99,9 +101,9 @@ if USE_CNN:
 ###########################################################################
 
 ############################# BBOX Setting ################################
-init_bbox = None # Use None, if no initial bbox; bbox format: [x_top_left, y_top_left, w, h]
+init_bbox = [283, 278, 51, 51] # Use None, if no initial bbox; bbox format: [x_top_left, y_top_left, w, h]
 BBOX_SIZE = [51, 51] # If init_bbox is none, we use the size of defalt bbox for following tracking
-STEP_SIZE = [51, 51] # the moving step for the initial bbox detection scanning
+STEP_SIZE = [25, 25] # the moving step for the initial bbox detection scanning
 ###########################################################################
 
 ######################### Record and Debug Setting #########################
@@ -138,7 +140,7 @@ if CREATE_SAMPLES:
 
 SHOW_RESULT = False # if True, will showing the image in windows
 				    # if False, will disable showing
-DEBUG_MODE = False # if True, will show tracking info on terminal;
+DEBUG_MODE = True # if True, will show tracking info on terminal;
 				   # if False, will disable info printing
 
 if SHOW_RESULT:

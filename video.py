@@ -32,15 +32,21 @@ class Video:
         """
         idx = []
         for file in files:
-            file = file.split("/")[-1].split("-")
+            if self.file_format < 2: 
+                file = file.split("/")[-1].split("-")
+            else:
+                file = file.split("/")[-1].split("_")
             if self.file_format == 0:
                 tmp = file[-2] 
                 idx.append([int(file[-6]), int(file[-5]), int(file[-4]), int(file[-3]), int(tmp)]) 
             elif self.file_format == 1:
                 tmp = file[-1].split(".")[0] 
                 idx.append([int(file[-2]), int(tmp)]) 
+            elif self.file_format == 2:
+                tmp = file[0][3:]
+                idx.append(int(tmp))
             else:
-                raise ValueError("Unrecongnized format (available 0/1): {}".format(self.file_format))
+                raise ValueError("Unrecongnized format (available 0/1/2): {}".format(self.file_format))
         idx = sorted(range(len(idx)), key=lambda k: idx[k])
         files = np.array(files)
         return files[idx]
@@ -61,6 +67,7 @@ class Video:
         try:
             file = next(self.iter)
             image = cv2.imread(file)
+            image = cv2.resize(image, (image.shape[1]//2, image.shape[0]//2))
             self.counter += 1
         except(StopIteration):
             return False, None

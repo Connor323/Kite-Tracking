@@ -15,13 +15,12 @@ from matched_filters import MatchedFilter
 from utils import * 
 from config import *
 from bs import BS
+from CNN_Detection import CNN_Detection, CNN_Verify
 
 class Interface:
     def __init__(self, init_bbox=None):
         # Set up tracker.
         self.tracker = creat_tracker(tracker_type)
-        # Set up BS
-        self.bs = BS()
         # Set up Matched Filter
         self.MF = MatchedFilter(KERNEL_PATH)
         # Initialize variables
@@ -33,7 +32,7 @@ class Interface:
         # Create handler when press Ctrl + C
         # signal.signal(signal.SIGINT, signal_handler)
 
-    def init_tracker(self, frames, init_bbox=None):
+    def init_tracker(self, frame, init_bbox=None):
         """
         Initialize tracker given bbox and first frame
 
@@ -44,22 +43,22 @@ class Interface:
             ret: if initialization is successful (boolean)
         """
         # Use MLP find init_bbox if init_bbox is none
-        if init_bbox is None:
-            for frame in frames[:-1]:
-                self.frame_num += 1
-                self.bs.set_info(frame, [0, 0, BBOX_SIZE[0], BBOX_SIZE[1]])
-                self.bs.cropImageAndAnalysis()
-            self.frame_num += 1
-            init_bbox, bs_patch = MLP_Detection_MP(frames[-1], self.bs.get_binary_result(), self.bs.get_centroids())
+        if init_bbox is None: 
+            init_bbox = CNN_Detection(frame)
             # Stop if both methods failed
             if init_bbox is None:
                 # raise ValueError("Initial Tracking Failed!!!")
                 print("Initial Tracking Failed!!!")
-                init_bbox=[0,0,51,51]
-            self.init_bbox = copy.copy(init_bbox)
+                return None
+
+        print("init_bbox: ", init_bbox)
+        self.init_bbox = copy.copy(init_bbox)
 
         # Initialize tracker with first frame and bounding box
-        return self.tracker.init(frames[-1], init_bbox)
+        del self.tracker # release the object space
+        self.tracker = creat_tracker(tracker_type)
+        self.tracker.init(frame, init_bbox)
+        return init_bbox
 
     def update(self, frame, verbose=False):
         """
@@ -97,20 +96,18 @@ class Interface:
         if ok:
             # Crop patch and analysis using histogram
             t_start = time.time()
-            self.bs.set_info(frame_original, bbox)
-            self.bs.cropImageAndAnalysis()
-            ok, bs_patch, bbox = self.bs.get_info()
+            ok = CNN_Verify(frame, bbox)
             if verbose:
                 print ("post tracking: ", time.time() - t_start)
 
-        # Use decision buffer to make final decision.
-        ok = pushBuffer(ok)
+        # # Use decision buffer to make final decision.
+        # ok = pushBuffer(ok)
  
         # Draw bounding box
         if not ok:
             # Tracking failure
             t_start = time.time()
-            bbox, bs_patch = MLP_Detection_MP(frame, self.bs.get_binary_result(), self.bs.get_centroids())
+            bbox = self.init_tracker(frame)
             if bbox is None:
                 if verbose:
                     print("   !!! -> Tracking Failed! Skip current frame...")
@@ -118,22 +115,16 @@ class Interface:
 
             # Reinitialize tracker
             ok = True
-            del self.tracker # release the object space
-            self.tracker = creat_tracker(tracker_type)
-            self.tracker.init(frame_original, bbox)
             if verbose:
                 print ("MLP: ", time.time() - t_start )
  
         # Apply matched filter to compute the angle of target
         t_start = time.time()
-        if bs_patch is not None:
-            angle = self.MF.getTargetAngle(bs_patch, frame_original.copy(), 
-                                           copy.copy(bbox), self.prev_angle)
-            center_loc = (np.array(bbox[:2]) + np.array(bbox[2:]) / 2).astype(int)
-            if angle is not None:
-                self.prev_angle = angle
-            else:
-                return False, None, None, None, None
+        angle = self.MF.getTargetAngle(frame_original.copy(), 
+                                       copy.copy(bbox), self.prev_angle)
+        center_loc = (np.array(bbox[:2]) + np.array(bbox[2:]) / 2).astype(int)
+        if angle is not None:
+            self.prev_angle = angle
         else:
             return False, None, None, None, None
         self.cnn_pred = self.MF.cnn_pred
@@ -178,14 +169,8 @@ if __name__ == "__main__":
 
     tracker = Interface()
 
-    frames = [frame]
-    for _ in range(INIT_FRAMES_NUM):
-        ok, frame = video.read()
-        if not ok:
-            print('Cannot read video file')
-            sys.exit()
-        frames.append(frame)
-    tracker.init_tracker(frames)
+    ok, frame = video.read()
+    tracker.init_tracker(frame)
 
     while True:
         # Read one frame
@@ -199,25 +184,24 @@ if __name__ == "__main__":
         ok, bbox, angle, center_loc, fps = tracker.update(frame, verbose=False)
         if ok:
             cnn_pred = tracker.cnn_pred
-            print("Frame: {:5d} | bbox: {:4d} {:4d} {:3d} {:3d}  | fps: {:3d}  |  anlge: {:3d}  |  CNN predict: {}".format(
+            print("Frame: {:5d} | bbox: {:4d} {:4d} {:3d} {:3d}  | fps: {:3d} |  CNN predict: {}".format(
                                                     video.getFrameIdx(), 
                                                     int(bbox[0]), int(bbox[1]), 
                                                     int(bbox[2]), int(bbox[3]),
                                                     int(fps),
-                                                    int(angle),
                                                     cnn_pred)) 
             drawBox(frame, bbox)
             drawAnlge(frame, angle, center_loc)
             drawPoint(frame, center_loc)
-            cv2.putText(frame, "Angle : " + str(int(angle)), (100,100), cv2.FONT_HERSHEY_SIMPLEX, 2.0, 
-                        (0, 255, 0), 5);
-            cv2.putText(frame, "FPS : " + str(int(fps)), (100,200), cv2.FONT_HERSHEY_SIMPLEX, 2.0, 
-                        (0, 255, 0), 5);
+            cv2.putText(frame, "Angle : " + str(int(angle)), (10,30), cv2.FONT_HERSHEY_SIMPLEX, 1.0, 
+                        (0, 255, 0), 2)
+            cv2.putText(frame, "FPS : " + str(int(fps)), (10,60), cv2.FONT_HERSHEY_SIMPLEX, 1.0, 
+                        (0, 255, 0), 2)
             
         else:
             print("Fail on tracking!!!")
-            cv2.putText(frame, "Fail!", (100,200), cv2.FONT_HERSHEY_SIMPLEX, 2.0, 
-                        (0, 0, 255), 5);
+            cv2.putText(frame, "Fail!", (10,30), cv2.FONT_HERSHEY_SIMPLEX, 1.0, 
+                        (0, 0, 255), 2);
         frame_resize = cv2.resize(frame, (512, 512))
         video_writer.append_data(swapChannels(frame_resize))
         cv2.imshow("frame", frame_resize)
